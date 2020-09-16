@@ -22,60 +22,89 @@ Partial Class frmPropertyInspector
     'Do not modify it using the code editor.
     <System.Diagnostics.DebuggerStepThrough()> _
     Private Sub InitializeComponent()
-        Me.lvProperties = New System.Windows.Forms.ListView()
-        Me.Column1 = CType(New System.Windows.Forms.ColumnHeader(), System.Windows.Forms.ColumnHeader)
-        Me.Column2 = CType(New System.Windows.Forms.ColumnHeader(), System.Windows.Forms.ColumnHeader)
         Me.CheckBoxLongFormat = New System.Windows.Forms.CheckBox()
+        Me.lvProperties = New System.Windows.Forms.DataGridView()
+        Me.PropertyName = New System.Windows.Forms.DataGridViewTextBoxColumn()
+        Me.PropertyValue = New System.Windows.Forms.DataGridViewTextBoxColumn()
+        Me.ButtonColumn = New System.Windows.Forms.DataGridViewTextBoxColumn()
+        CType(Me.lvProperties, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.SuspendLayout()
-        '
-        'lvProperties
-        '
-        Me.lvProperties.Columns.AddRange(New System.Windows.Forms.ColumnHeader() {Me.Column1, Me.Column2})
-        Me.lvProperties.Location = New System.Drawing.Point(-1, 30)
-        Me.lvProperties.Name = "lvProperties"
-        Me.lvProperties.Size = New System.Drawing.Size(322, 791)
-        Me.lvProperties.TabIndex = 0
-        Me.lvProperties.UseCompatibleStateImageBehavior = False
-        Me.lvProperties.View = System.Windows.Forms.View.Details
-        '
-        'Column1
-        '
-        Me.Column1.Text = ""
-        Me.Column1.Width = 136
-        '
-        'Column2
-        '
-        Me.Column2.Text = ""
-        Me.Column2.Width = 182
         '
         'CheckBoxLongFormat
         '
         Me.CheckBoxLongFormat.AutoSize = True
         Me.CheckBoxLongFormat.FlatStyle = System.Windows.Forms.FlatStyle.Flat
-        Me.CheckBoxLongFormat.Location = New System.Drawing.Point(232, 7)
+        Me.CheckBoxLongFormat.Location = New System.Drawing.Point(221, 12)
         Me.CheckBoxLongFormat.Name = "CheckBoxLongFormat"
         Me.CheckBoxLongFormat.Size = New System.Drawing.Size(75, 17)
         Me.CheckBoxLongFormat.TabIndex = 1
         Me.CheckBoxLongFormat.Text = "long format"
         Me.CheckBoxLongFormat.UseVisualStyleBackColor = True
         '
+        'lvProperties
+        '
+        Me.lvProperties.AllowUserToAddRows = False
+        Me.lvProperties.AllowUserToDeleteRows = False
+        Me.lvProperties.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill
+        Me.lvProperties.BackgroundColor = System.Drawing.SystemColors.Window
+        Me.lvProperties.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize
+        Me.lvProperties.Columns.AddRange(New System.Windows.Forms.DataGridViewColumn() {Me.PropertyName, Me.PropertyValue, Me.ButtonColumn})
+        Me.lvProperties.Dock = System.Windows.Forms.DockStyle.Bottom
+        Me.lvProperties.Location = New System.Drawing.Point(0, 42)
+        Me.lvProperties.MultiSelect = False
+        Me.lvProperties.Name = "lvProperties"
+        Me.lvProperties.ReadOnly = True
+        Me.lvProperties.RowHeadersVisible = False
+        Me.lvProperties.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect
+        Me.lvProperties.Size = New System.Drawing.Size(335, 791)
+        Me.lvProperties.TabIndex = 2
+        '
+        'PropertyName
+        '
+        Me.PropertyName.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.AllCells
+        Me.PropertyName.HeaderText = "Property"
+        Me.PropertyName.MinimumWidth = 137
+        Me.PropertyName.Name = "PropertyName"
+        Me.PropertyName.ReadOnly = True
+        Me.PropertyName.Width = 137
+        '
+        'PropertyValue
+        '
+        Me.PropertyValue.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.AllCells
+        Me.PropertyValue.HeaderText = "Value"
+        Me.PropertyValue.MinimumWidth = 137
+        Me.PropertyValue.Name = "PropertyValue"
+        Me.PropertyValue.ReadOnly = True
+        Me.PropertyValue.Width = 137
+        '
+        'ButtonColumn
+        '
+        Me.ButtonColumn.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.None
+        Me.ButtonColumn.HeaderText = ""
+        Me.ButtonColumn.MinimumWidth = 20
+        Me.ButtonColumn.Name = "ButtonColumn"
+        Me.ButtonColumn.ReadOnly = True
+        Me.ButtonColumn.Resizable = System.Windows.Forms.DataGridViewTriState.[False]
+        Me.ButtonColumn.Width = 20
+        '
         'frmPropertyInspector
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
-        Me.ClientSize = New System.Drawing.Size(322, 833)
-        Me.Controls.Add(Me.CheckBoxLongFormat)
+        Me.ClientSize = New System.Drawing.Size(335, 833)
         Me.Controls.Add(Me.lvProperties)
+        Me.Controls.Add(Me.CheckBoxLongFormat)
         Me.Name = "frmPropertyInspector"
         Me.Text = "POE Property Inspector"
         Me.TopMost = True
+        CType(Me.lvProperties, System.ComponentModel.ISupportInitialize).EndInit()
         Me.ResumeLayout(False)
         Me.PerformLayout()
 
     End Sub
-
-    Friend WithEvents lvProperties As Windows.Forms.ListView
-    Friend WithEvents Column1 As Windows.Forms.ColumnHeader
-    Friend WithEvents Column2 As Windows.Forms.ColumnHeader
     Friend WithEvents CheckBoxLongFormat As Windows.Forms.CheckBox
+    Friend WithEvents lvProperties As Windows.Forms.DataGridView
+    Friend WithEvents PropertyName As Windows.Forms.DataGridViewTextBoxColumn
+    Friend WithEvents PropertyValue As Windows.Forms.DataGridViewTextBoxColumn
+    Friend WithEvents ButtonColumn As Windows.Forms.DataGridViewTextBoxColumn
 End Class

@@ -34,7 +34,7 @@ Public Class frmDefineWorksace
 
         ' Get preferences from ClientServiceProvider.
         oPreferences = ClientServiceProvider.Preferences
-        Dim pk As SessionPreferenceKeys
+
 
         'Dim oValueManager As ValueManager
         ' Get ValueManager from ClientServiceProvider.

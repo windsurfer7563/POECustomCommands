@@ -21,6 +21,7 @@
     <OutputPath>bin\Debug\</OutputPath>
     <DocumentationFile>POECustomCommands.xml</DocumentationFile>
     <NoWarn>42016,41999,42017,42018,42019,42032,42036,42020,42021,42022</NoWarn>
+    <UseVSHostingProcess>false</UseVSHostingProcess>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -124,10 +125,21 @@
     <Compile Include="frmGetObjectsOnDwg.vb">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="frmLPRodsModeling1.Designer.vb">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>frmLPRodsModeling.resx</DependentUpon>
+    </Compile>
     <Compile Include="frmNameRuleAssignment.Designer.vb">
       <DependentUpon>frmNameRuleAssignment.vb</DependentUpon>
     </Compile>
     <Compile Include="frmNameRuleAssignment.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmPropertyInspectorChange.Designer.vb">
+      <DependentUpon>frmPropertyInspectorChange.vb</DependentUpon>
+    </Compile>
+    <Compile Include="frmPropertyInspectorChange.vb">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="GetObjectsOnDWG.vb" />
@@ -170,12 +182,18 @@
     <EmbeddedResource Include="frmGetObjectsOnDwg.resx">
       <DependentUpon>frmGetObjectsOnDwg.vb</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="frmLPRodsModeling.resx" />
+    <EmbeddedResource Include="frmLPRodsModeling.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>frmLPRodsModeling1.Designer.vb</LastGenOutput>
+    </EmbeddedResource>
     <EmbeddedResource Include="frmNameRuleAssignment.resx">
       <DependentUpon>frmNameRuleAssignment.vb</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="frmPropertyInspector.resx">
       <DependentUpon>frmPropertyInspector.vb</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmPropertyInspectorChange.resx">
+      <DependentUpon>frmPropertyInspectorChange.vb</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="My Project\Resources.resx">
       <Generator>VbMyResourcesResXFileCodeGenerator</Generator>

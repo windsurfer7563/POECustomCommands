@@ -5,7 +5,7 @@ Imports Ingr.SP3D.Common.Middle.Services
 Imports System.Windows.Forms
 Imports System.Windows
 
-Public Class frmLPRodsModeling
+Friend Class frmLPRodsModeling
     Public Event OnFinish()
     Public Event OnClose()
     Public Event OnNameChanged()

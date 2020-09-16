@@ -1,4 +1,6 @@
-﻿
+﻿Option Strict Off
+
+
 Imports Ingr.SP3D.Common.Client
 Imports Ingr.SP3D.Common.Client.Services
 Imports Ingr.SP3D.Common.Middle
@@ -8,25 +10,64 @@ Imports Ingr.SP3D.Route.Middle
 Imports Ingr.SP3D.Systems.Middle
 Imports Ingr.SP3D.Structure.Middle
 Imports Ingr.SP3D.ReferenceData.Middle
+Imports Ingr.SP3D.ReferenceData.Middle.Services
+
 Imports System.Windows.Forms
+Imports System
+Imports System.Drawing
+Imports System.Collections
+Imports System.ComponentModel
+Imports System.Collections.Generic
+
 
 
 Public Class frmPropertyInspector
-
+    Private m_oTransactionMgr As ClientTransactionManager
     Private WithEvents m_oEVSelectSet As SelectSet
     Private currentBOClass As String
     Private current_bo As BusinessObject
+    Private GroupStyle As DataGridViewCellStyle
+    Private m_UOM As UOMManager
+    Private changeables As Dictionary(Of String, ChangeableEntity)
+    Private cHelper As CatalogBaseHelper
 
 
     Private Sub frmPropertyInspector_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         m_oEVSelectSet = ClientServiceProvider.SelectSet
-        lvProperties.Width = Me.Width - 10
-        lvProperties.Height = Me.Height - 40
-        lvProperties.ShowGroups = True
+        m_oTransactionMgr = ClientServiceProvider.TransactionMgr
+        m_UOM = MiddleServiceProvider.UOMMgr
+        cHelper = New CatalogBaseHelper
+
+        'lvProperties.Width = Me.Width - 30
+        'lvProperties.Height = Me.Height - 40
+        lvProperties.CellBorderStyle = DataGridViewCellBorderStyle.Single
+        lvProperties.ColumnCount = 3
+
+
+        GroupStyle = New DataGridViewCellStyle()
+        GroupStyle.Font = New Font(lvProperties.DefaultCellStyle.Font.FontFamily, 9, FontStyle.Bold)
+        GroupStyle.ForeColor = Color.Blue
+
+        changeables = New Dictionary(Of String, ChangeableEntity)
+
         current_bo = Nothing
+    End Sub
+    Private Sub lvProperties_CellPainting(sender As Object, e As DataGridViewCellPaintingEventArgs) Handles lvProperties.CellPainting
+        If e.ColumnIndex = 2 And e.RowIndex > -1 Then
+            e.AdvancedBorderStyle.Left = DataGridViewAdvancedCellBorderStyle.None
+        End If
+        If e.ColumnIndex = 1 And e.RowIndex > -1 Then
+            e.AdvancedBorderStyle.Right = DataGridViewAdvancedCellBorderStyle.None
+        End If
+    End Sub
+    Private Sub Form1_Resize(sender As Object, e As EventArgs) Handles Me.Resize
+        'lvProperties.Width = Me.Width - 20
+        'lvProperties.Height = Me.Height - 50
+        'lvProperties.Columns(0).MinimumWidth = (Me.Width - 20) * 0.3
+        'lvProperties.Columns(1).MinimumWidth = (Me.Width - 20) * 0.7
+
 
     End Sub
-
 
     Private Sub frmPropertyInspector_FormClosed(ByVal sender As Object, ByVal e As System.Windows.Forms.FormClosedEventArgs) Handles Me.FormClosed
         m_oEVSelectSet = Nothing
@@ -40,10 +81,11 @@ Public Class frmPropertyInspector
     End Sub
 
     Private Sub ProcessSelection(bo As BusinessObject)
+
         current_bo = bo
         currentBOClass = current_bo.ClassInfo.DisplayName
-
-        lvProperties.Items.Clear()
+        changeables.Clear()
+        lvProperties.Rows.Clear()
 
         GetGeneralProperties(current_bo)
 
@@ -92,18 +134,20 @@ Public Class frmPropertyInspector
 
     End Sub
     Private Sub GetGeneralProperties(businessObject As BusinessObject)
-        Dim group As New ListViewGroup("General", HorizontalAlignment.Left)
-        lvProperties.Groups.Add(group)
-        lvProperties.Items.Add(CreateNewLI("Class", currentBOClass, group))
-        lvProperties.Items.Add(CreateNewLI("Name", businessObject.ToString(), group))
-        lvProperties.Items.Add(CreateNewLI("ApprovalStatus", businessObject.ApprovalStatus.ToString(), group))
 
-        Call GetConstructionInfoData(businessObject, group)
+        AddGroup("General")
+        CreateNewLI("Class", currentBOClass)
+
+        AddInterfaceTypeProperty(businessObject, "IJNamedItem", "Name", PropertyTypes.text, listItemName:="Name", changeable:=True)
+
+        AddInterfaceTypeProperty(businessObject, "IJDObject", "ApprovalStatus", PropertyTypes.codelist, changeable:=True)
+
+        Call GetConstructionInfoData(businessObject)
 
         If CheckBoxLongFormat.Checked = True Then
-            lvProperties.Items.Add(CreateNewLI("UserLastModified", businessObject.UserLastModified.ToString(), group))
-            lvProperties.Items.Add(CreateNewLI("DateLastModified", businessObject.DateLastModified.ToString(), group))
-            lvProperties.Items.Add(CreateNewLI("UserCreated", businessObject.UserCreated.ToString(), group))
+            CreateNewLI("UserLastModified", businessObject.UserLastModified.ToString())
+            CreateNewLI("DateLastModified", businessObject.DateLastModified.ToString())
+            CreateNewLI("UserCreated", businessObject.UserCreated.ToString())
         End If
 
         If currentBOClass.Contains("Feature") Then
@@ -111,111 +155,107 @@ Public Class frmPropertyInspector
         End If
 
         If businessObject.SupportsInterface("IJMtoInfo") = True Then
-            lvProperties.Items.Add(CreateNewLI("ReportingRequirements", businessObject.GetPropertyValue("IJMTOInfo", "ReportingRequirements").ToString(), group))
+            AddInterfaceTypeProperty(businessObject, "IJMTOInfo", "ReportingRequirements", PropertyTypes.codelist, changeable:=True)
         End If
 
     End Sub
 
-    Private Sub GetConstructionInfoData(businessObject As BusinessObject, group As ListViewGroup)
+    Private Sub GetConstructionInfoData(businessObject As BusinessObject)
 
         If currentBOClass.Contains("Feature") Then
             businessObject = getPartFromFeature(businessObject)
         End If
 
         If businessObject.SupportsInterface("IJConstructionInfo") = True Then
-            lvProperties.Items.Add(CreateNewLI("ConstructionRequirement", businessObject.GetPropertyValue("IJConstructionInfo", "ConstructionRequirement").ToString(), group))
+            AddInterfaceTypeProperty(businessObject, "IJConstructionInfo", "ConstructionRequirement", PropertyTypes.codelist, changeable:=True)
+            AddInterfaceTypeProperty(businessObject, "IJConstructionInfo", "ConstructionType", PropertyTypes.codelist, changeable:=True, parentCodeListPropName:="ConstructionRequirement")
         End If
-
-        If businessObject.SupportsInterface("IJConstructionInfo") = True Then
-            lvProperties.Items.Add(CreateNewLI("ConstructionType", businessObject.GetPropertyValue("IJConstructionInfo", "ConstructionType").ToString(), group))
-        End If
-
     End Sub
+
     Private Sub GetEqpProperties(businessObject As BusinessObject)
         Dim pos As Position
         Dim c1, c2, c3
 
-        Dim equipment_group As New ListViewGroup("Equipment", HorizontalAlignment.Left)
-        lvProperties.Groups.Add(equipment_group)
+        AddGroup("Equipment")
 
-        lvProperties.Items.Add(CreateNewLI("Name", businessObject.ToString(), equipment_group))
+        CreateNewLI("Name", businessObject.ToString())
         pos = GetEqpPosition(businessObject)
-        lvProperties.Items.Add(CreateNewLI("X", FormatDistanceValue(pos.X), equipment_group))
-        lvProperties.Items.Add(CreateNewLI("Y", FormatDistanceValue(pos.Y), equipment_group))
-        lvProperties.Items.Add(CreateNewLI("Z", FormatDistanceValue(pos.Z), equipment_group))
+        CreateNewLI("X", FormatDistanceValue(pos.X))
+        CreateNewLI("Y", FormatDistanceValue(pos.Y))
+        CreateNewLI("Z", FormatDistanceValue(pos.Z))
+        'getting cataliog item from equipment
+        Dim cBO As BusinessObject = businessObject.GetRelationship("SOtoSI_R", "toSI_ORIG").TargetObjects.Item(0)
+        AddInterfaceTypeProperty(cBO, "IJEquipmentPart", "ProcessEqTypes0",
+                                 PropertyTypes.codelist, listItemName:="Classification0", changeable:=True)
+        AddInterfaceTypeProperty(cBO, "IJEquipmentPart", "ProcessEqTypes1",
+                                 PropertyTypes.codelist, listItemName:="Classification1", changeable:=True)
+        AddInterfaceTypeProperty(cBO, "IJEquipmentPart", "ProcessEqTypes2",
+                                 PropertyTypes.codelist, listItemName:="Classification2", changeable:=True)
 
-        c1 = businessObject.GetRelationship("SOtoSI_R", "toSI_ORIG").TargetObjects.Item(0).GetPropertyValue("IJEquipmentPart", "ProcessEqTypes0")
-        c2 = businessObject.GetRelationship("SOtoSI_R", "toSI_ORIG").TargetObjects.Item(0).GetPropertyValue("IJEquipmentPart", "ProcessEqTypes0")
-        c3 = businessObject.GetRelationship("SOtoSI_R", "toSI_ORIG").TargetObjects.Item(0).GetPropertyValue("IJEquipmentPart", "ProcessEqTypes0")
-
-        lvProperties.Items.Add(CreateNewLI("Classification1", c1.ToString(), equipment_group))
-        lvProperties.Items.Add(CreateNewLI("Classification2", c2.ToString(), equipment_group))
-        lvProperties.Items.Add(CreateNewLI("Classification3", c3.ToString(), equipment_group))
 
     End Sub
     Private Sub GetPipeNozzleProperties(oNozzle As PipeNozzle)
         Dim oConn As Ingr.SP3D.Route.Middle.Connection
 
-        Dim group As New ListViewGroup("Nozzle", HorizontalAlignment.Left)
-        lvProperties.Groups.Add(group)
-        lvProperties.Items.Add(CreateNewLI("Name", oNozzle.ToString(), group))
-        lvProperties.Items.Add(CreateNewLI("Length", FormatDistanceValue(oNozzle.Length), group))
+        AddGroup("Nozzle")
+        CreateNewLI("Name", oNozzle.ToString())
+        CreateNewLI("Length", FormatDistanceValue(oNozzle.Length))
 
         Call GetPortData(oNozzle)
-
         If CheckBoxLongFormat.Checked = True Then
             Dim RC As RelationCollection
             RC = oNozzle.GetRelationship("FlowPorts", "DistribConnectionObj")
             If RC.TargetObjects.Count > 0 Then
-
                 oConn = RC.TargetObjects(0)
                 Call GetConnectionData(oConn, 1)
             End If
         End If
 
-            Dim oEquipment = oNozzle.SystemParent
+        Dim oEquipment = oNozzle.SystemParent
         Call GetEqpProperties(oEquipment)
 
     End Sub
 
     Private Sub GetShapeProperties(oShape As GenericShape)
-        Dim group As New ListViewGroup("Shape")
-        lvProperties.Groups.Add(group)
-        lvProperties.Items.Add(CreateNewLI("Name", oShape.Name, group))
+
+        AddGroup("Shape")
+
+        AddInterfaceTypeProperty(oShape, "IJNamedItem", "Name",
+                                 PropertyTypes.codelist, listItemName:="Shape Name", changeable:=True)
 
         If oShape.SupportsInterface("IJUACylinder") = True Then
-            lvProperties.Items.Add(CreateNewLI("A", oShape.GetPropertyValue("IJUACylinder", "A").ToString(), group))
-            lvProperties.Items.Add(CreateNewLI("B", oShape.GetPropertyValue("IJUACylinder", "B").ToString(), group))
+            CreateNewLI("A", oShape.GetPropertyValue("IJUACylinder", "A").ToString())
+            CreateNewLI("B", oShape.GetPropertyValue("IJUACylinder", "B").ToString())
             GoTo eqp
         End If
 
         If oShape.SupportsInterface("IJUACone") = True Then
-            lvProperties.Items.Add(CreateNewLI("A", oShape.GetPropertyValue("IJUACone", "A").ToString(), group))
-            lvProperties.Items.Add(CreateNewLI("B", oShape.GetPropertyValue("IJUACone", "B").ToString(), group))
-            lvProperties.Items.Add(CreateNewLI("C", oShape.GetPropertyValue("IJUACone", "c").ToString(), group))
+            CreateNewLI("A", oShape.GetPropertyValue("IJUACone", "A").ToString())
+            CreateNewLI("B", oShape.GetPropertyValue("IJUACone", "B").ToString())
+            CreateNewLI("C", oShape.GetPropertyValue("IJUACone", "c").ToString())
             GoTo eqp
         End If
         If oShape.SupportsInterface("IJUAEccentricCone") = True Then
-            lvProperties.Items.Add(CreateNewLI("A", oShape.GetPropertyValue("IJUAEccentricCone", "A").ToString(), group))
-            lvProperties.Items.Add(CreateNewLI("B", oShape.GetPropertyValue("IJUAEccentricCone", "B").ToString(), group))
-            lvProperties.Items.Add(CreateNewLI("C", oShape.GetPropertyValue("IJUAEccentricCone", "c").ToString(), group))
+            CreateNewLI("A", oShape.GetPropertyValue("IJUAEccentricCone", "A").ToString())
+            CreateNewLI("B", oShape.GetPropertyValue("IJUAEccentricCone", "B").ToString())
+            CreateNewLI("C", oShape.GetPropertyValue("IJUAEccentricCone", "c").ToString())
             GoTo eqp
         End If
 
         If oShape.SupportsInterface("IJUARectSolid") = True Then
-            lvProperties.Items.Add(CreateNewLI("A", oShape.GetPropertyValue("IJUARectSolid", "A").ToString(), group))
-            lvProperties.Items.Add(CreateNewLI("B", oShape.GetPropertyValue("IJUARectSolid", "B").ToString(), group))
-            lvProperties.Items.Add(CreateNewLI("C", oShape.GetPropertyValue("IJUARectSolid", "C").ToString(), group))
+            CreateNewLI("A", oShape.GetPropertyValue("IJUARectSolid", "A").ToString())
+            CreateNewLI("B", oShape.GetPropertyValue("IJUARectSolid", "B").ToString())
+            CreateNewLI("C", oShape.GetPropertyValue("IJUARectSolid", "C").ToString())
             GoTo eqp
         End If
         If oShape.SupportsInterface("IJUASphere") = True Then
-            lvProperties.Items.Add(CreateNewLI("A", oShape.GetPropertyValue("IJUASphere", "A").ToString(), group))
+            CreateNewLI("A", oShape.GetPropertyValue("IJUASphere", "A").ToString())
             GoTo eqp
         End If
 
         If oShape.SupportsInterface("IJUASemiElliptical") = True Then
-            lvProperties.Items.Add(CreateNewLI("A", oShape.GetPropertyValue("IJUASemiElliptical", "A").ToString(), group))
-            lvProperties.Items.Add(CreateNewLI("B", oShape.GetPropertyValue("IJUASemiElliptical", "B").ToString(), group))
+            CreateNewLI("A", oShape.GetPropertyValue("IJUASemiElliptical", "A").ToString())
+            CreateNewLI("B", oShape.GetPropertyValue("IJUASemiElliptical", "B").ToString())
         End If
 eqp:
 
@@ -225,15 +265,15 @@ eqp:
 
     Private Sub GetPipeProperties(businessObject As BusinessObject)
         Dim p1
-        Dim group As New ListViewGroup("Pipe")
-        lvProperties.Groups.Add(group)
+        AddGroup("Pipe")
 
-        lvProperties.Items.Add(CreateNewLI("Length", businessObject.GetPropertyValue("IJRteStockPartOccur", "Length").ToString(), group))
-        lvProperties.Items.Add(CreateNewLI("CutLength", businessObject.GetPropertyValue("IJRteStockPartOccur", "CutLength").ToString(), group))
+        AddInterfaceTypeProperty(businessObject, "IJRteStockPartOccur", "Length", PropertyTypes.text, changeable:=False)
+        AddInterfaceTypeProperty(businessObject, "IJRteStockPartOccur", "CutLength", PropertyTypes.text, changeable:=False)
+
         p1 = businessObject.GetRelationship("madeFrom", "part").TargetObjects.Item(0)
-        lvProperties.Items.Add(CreateNewLI("CommodityCode", p1.GetPropertyValue("IJDPipeComponent", "IndustryCommodityCode").ToString(), group))
-        lvProperties.Items.Add(CreateNewLI("FirstSizeSchedule", p1.GetPropertyValue("IJDPipeComponent", "FirstSizeSchedule").ToString(), group))
-        lvProperties.Items.Add(CreateNewLI("SecondSizeSchedule", p1.GetPropertyValue("IJDPipeComponent", "SecondSizeSchedule").ToString(), group))
+        AddInterfaceTypeProperty(p1, "IJDPipeComponent", "IndustryCommodityCode", PropertyTypes.text, changeable:=False)
+        AddInterfaceTypeProperty(p1, "IJDPipeComponent", "FirstSizeSchedule", PropertyTypes.text, changeable:=False)
+        AddInterfaceTypeProperty(p1, "IJDPipeComponent", "SecondSizeSchedule", PropertyTypes.text, changeable:=False)
 
         If CheckBoxLongFormat.Checked = True Then
             Call GetDistribPorts(businessObject)
@@ -246,19 +286,19 @@ eqp:
 
     End Sub
 
-
-
     Private Sub GetPipePartProperties(businessObject As BusinessObject)
         Dim p1
-        Dim group As New ListViewGroup("Pipe Part")
-        lvProperties.Groups.Add(group)
-        lvProperties.Items.Add(CreateNewLI("ShortCode", businessObject.GetPropertyValue("IJRtePartData", "ShortCode").ToString(), group))
-        lvProperties.Items.Add(CreateNewLI("OptionCode", businessObject.GetPropertyValue("IJRtePartData", "OptionCode").ToString(), group))
+        AddGroup("Pipe Part")
+        AddInterfaceTypeProperty(businessObject, "IJRtePartData", "ShortCode", PropertyTypes.text, changeable:=False)
+
+        AddInterfaceTypeProperty(businessObject, "IJRtePartData", "OptionCode", PropertyTypes.codelist, changeable:=False)
+
         p1 = businessObject.GetRelationship("madeFrom", "part").TargetObjects.Item(0)
-        lvProperties.Items.Add(CreateNewLI("CommodityType", p1.GetPropertyValue("IJDPipeComponent", "CommodityType").ToString(), group))
-        lvProperties.Items.Add(CreateNewLI("CommodityCode", p1.GetPropertyValue("IJDPipeComponent", "IndustryCommodityCode").ToString(), group))
-        lvProperties.Items.Add(CreateNewLI("FirstSizeSchedule", p1.GetPropertyValue("IJDPipeComponent", "FirstSizeSchedule").ToString(), group))
-        lvProperties.Items.Add(CreateNewLI("SecondSizeSchedule", p1.GetPropertyValue("IJDPipeComponent", "SecondSizeSchedule").ToString(), group))
+        AddInterfaceTypeProperty(p1, "IJDPipeComponent", "CommodityType", PropertyTypes.text, changeable:=False)
+        AddInterfaceTypeProperty(p1, "IJDPipeComponent", "IndustryCommodityCode", PropertyTypes.text, listItemName:="CommodityCode", changeable:=False)
+        AddInterfaceTypeProperty(p1, "IJDPipeComponent", "FirstSizeSchedule", PropertyTypes.text, changeable:=False)
+        AddInterfaceTypeProperty(p1, "IJDPipeComponent", "SecondSizeSchedule", PropertyTypes.text, changeable:=False)
+
         If CheckBoxLongFormat.Checked = True Then
             Call GetDistribPorts(businessObject)
             Call GetBoltingData(businessObject)
@@ -272,32 +312,36 @@ eqp:
 
 
     Private Sub GetPipeSpecialtyProperties(businessObject As BusinessObject)
-        Dim group As New ListViewGroup("Pipe Specialty")
-        lvProperties.Groups.Add(group)
-        If businessObject.SupportsInterface("IJFaceToCenter") Then
-            lvProperties.Items.Add(CreateNewLI("FacetoCenter", businessObject.GetPropertyValue("IJFaceToCenter", "FacetoCenter").ToString(), group))
-            lvProperties.Items.Add(CreateNewLI("Face1toCenter", businessObject.GetPropertyValue("IJFaceToCenter", "Face1toCenter").ToString(), group))
-            lvProperties.Items.Add(CreateNewLI("Face2toCenter", businessObject.GetPropertyValue("IJFaceToCenter", "Face2toCenter").ToString(), group))
-        End If
+        AddGroup("Pipe Specialty")
+
+        AddInterfaceTypeProperty(businessObject, "IJFaceToFace", "FacetoFace", PropertyTypes.distance, changeable:=True)
+        AddInterfaceTypeProperty(businessObject, "IJFaceToCenter", "FacetoCenter", PropertyTypes.distance, changeable:=True)
+        AddInterfaceTypeProperty(businessObject, "IJFaceToCenter", "Face1toCenter", PropertyTypes.distance, changeable:=True)
+        AddInterfaceTypeProperty(businessObject, "IJFaceToCenter", "Face2toCenter", PropertyTypes.distance, changeable:=True)
+
         If businessObject.SupportsInterface("IJUAMucFlange") Then
-            lvProperties.Items.Add(CreateNewLI("Length", businessObject.GetPropertyValue("IJUAMucFlange", "Length").ToString(), group))
-            lvProperties.Items.Add(CreateNewLI("FlangeThk", businessObject.GetPropertyValue("IJUAMucFlange", "FlangeThk").ToString(), group))
+            AddInterfaceTypeProperty(businessObject, "IJUAMucFlange", "Length", PropertyTypes.text, changeable:=True)
+            AddInterfaceTypeProperty(businessObject, "IJUAMucFlange", "FlangeThk", PropertyTypes.text, changeable:=True)
         End If
 
-        Dim group2 = New ListViewGroup("Material Control Data")
-        lvProperties.Groups.Add(group2)
+        AddGroup("Material Control Data")
 
         Dim oRC As RelationCollection
         oRC = businessObject.GetRelationship("PartOccToMaterialControlData", "MaterialControlData")
         Dim oGenMat = oRC.TargetObjects.Item(0)
+        AddInterfaceTypeProperty(oGenMat, "IJGenericMaterialControlData", "ContractorCommodityCode", PropertyTypes.text, changeable:=True)
+        AddInterfaceTypeProperty(oGenMat, "IJGenericMaterialControlData", "ShortMaterialDescription", PropertyTypes.text, listItemName:="Description", changeable:=True)
+        AddInterfaceTypeProperty(oGenMat, "IJGenericMaterialControlData", "BoltingRequirements", PropertyTypes.codelist, changeable:=True)
+        AddInterfaceTypeProperty(oGenMat, "IJGenericMaterialControlData", "GasketRequirements", PropertyTypes.codelist, changeable:=True)
+        AddInterfaceTypeProperty(oGenMat, "IJGenericMaterialControlData", "SubstCapScrewCntrCommodityCode", PropertyTypes.text, changeable:=True)
 
-        lvProperties.Items.Add(CreateNewLI("ContractorCommodityCode", oGenMat.GetPropertyValue("IJGenericMaterialControlData", "ContractorCommodityCode").ToString(), group2))
-        lvProperties.Items.Add(CreateNewLI("Description", oGenMat.GetPropertyValue("IJGenericMaterialControlData", "ShortMaterialDescription").ToString(), group2))
+        AddInterfaceTypeProperty(oGenMat, "IJValveOperatorInfo", "ValveOperatorClass", PropertyTypes.codelist, listItemName:="Valve Operator Class", changeable:=True)
+        AddInterfaceTypeProperty(oGenMat, "IJValveOperatorInfo", "ValveOperatorType", PropertyTypes.codelist, changeable:=True, listItemName:="Valve Operator Type", parentCodeListPropName:="ValveOperatorClass")
+
 
         oRC = oGenMat.GetRelationship("DefinesMaterialControlDataForComponent", "Component")
-
         Dim oComp = oRC.TargetObjects.Item(0)
-        lvProperties.Items.Add(CreateNewLI("PartNumber", oComp.GetPropertyValue("IJDPart", "PartNumber").ToString(), group2))
+        AddInterfaceTypeProperty(oComp, "IJDPart", "PartNumber", PropertyTypes.text, changeable:=False)
 
         If CheckBoxLongFormat.Checked = True Then
             Call GetDistribPorts(businessObject)
@@ -321,14 +365,15 @@ eqp:
 
     Private Sub GetPortData(oPort As BusinessObject)
         Dim group As New ListViewGroup("Port " + oPort.GetPropertyValue("IJDPipePOrt", "PortIndex").ToString())
-        lvProperties.Groups.Add(group)
-        lvProperties.Items.Add(CreateNewLI("NPD", oPort.GetPropertyValue("IJDPipePOrt", "NPD").ToString() & " " & oPort.GetPropertyValue("IJDPipePOrt", "NpdUnitType").ToString(), group))
-        lvProperties.Items.Add(CreateNewLI("Pressure", oPort.GetPropertyValue("IJDPipePOrt", "PressureRating").ToString(), group))
-        lvProperties.Items.Add(CreateNewLI("Term.Class", oPort.GetPropertyValue("IJDPipePOrt", "TerminationClass").ToString(), group))
-        lvProperties.Items.Add(CreateNewLI("EndPrep", FormatCodeListValue(oPort.GetPropertyValue("IJDPipePOrt", "EndPreparation")), group))
-        lvProperties.Items.Add(CreateNewLI("EndPrep Descr.", GetCodelistedValue(oPort.GetPropertyValue("IJDPipePOrt", "EndPreparation"), short_format:=False), group))
-        lvProperties.Items.Add(CreateNewLI("EndStd", FormatCodeListValue(oPort.GetPropertyValue("IJDPipePOrt", "EndStandard")), group))
-        lvProperties.Items.Add(CreateNewLI("EndPractice", oPort.GetPropertyValue("IJDPipePOrt", "EndPractice").ToString(), group))
+        AddGroup("Port " + oPort.GetPropertyValue("IJDPipePOrt", "PortIndex").ToString())
+
+        CreateNewLI("NPD", oPort.GetPropertyValue("IJDPipePOrt", "NPD").ToString() & " " & oPort.GetPropertyValue("IJDPipePOrt", "NpdUnitType").ToString())
+        CreateNewLI("Pressure", oPort.GetPropertyValue("IJDPipePOrt", "PressureRating").ToString())
+        CreateNewLI("Term.Class", oPort.GetPropertyValue("IJDPipePOrt", "TerminationClass").ToString())
+        CreateNewLI("EndPrep", FormatCodeListValue(oPort.GetPropertyValue("IJDPipePOrt", "EndPreparation")))
+        CreateNewLI("EndPrep Descr.", GetCodelistedValue(oPort.GetPropertyValue("IJDPipePOrt", "EndPreparation"), short_format:=False))
+        CreateNewLI("EndStd", FormatCodeListValue(oPort.GetPropertyValue("IJDPipePOrt", "EndStandard")))
+        CreateNewLI("EndPractice", oPort.GetPropertyValue("IJDPipePOrt", "EndPractice").ToString())
 
     End Sub
 
@@ -339,17 +384,16 @@ eqp:
         Return oPipeRun
     End Function
     Private Sub GetPipeRunData(oPipeRun As PipeRun)
-        Dim group As New ListViewGroup("PipeRun")
-        lvProperties.Groups.Add(group)
-        lvProperties.Items.Add(CreateNewLI("Run Name", oPipeRun.ToString(), group))
-        lvProperties.Items.Add(CreateNewLI("Piping Spec", oPipeRun.Specification.SpecificationName, group))
-        Dim oPV As PropertyValueCodelist = oPipeRun.GetPropertyValue("IJRteInsulation", "Purpose")
-        lvProperties.Items.Add(CreateNewLI("InsulationPurpose", oPV.PropertyInfo.CodeListInfo.GetCodelistItem(oPV.PropValue).ShortDisplayName, group))
-        oPV = oPipeRun.GetPropertyValue("IJRteInsulation", "Material")
-        lvProperties.Items.Add(CreateNewLI("InsulationMaterial", oPV.PropertyInfo.CodeListInfo.GetCodelistItem(oPV.PropValue).ShortDisplayName, group))
+        AddGroup("PipeRun")
+        CreateNewLI("Run Name", oPipeRun.ToString())
+        CreateNewLI("Piping Spec", oPipeRun.Specification.SpecificationName)
 
-        Dim dInsulationThickness As Double = DirectCast(oPipeRun.GetPropertyValue("IJRteInsulation", "Thickness"), PropertyValueDouble).PropValue
-        lvProperties.Items.Add(CreateNewLI("InsulationThickness", CStr(dInsulationThickness * 1000.0), group))
+        AddInterfaceTypeProperty(oPipeRun, "IJRteInsulation", "Purpose", PropertyTypes.codelist, listItemName:="Insulation Purpose", changeable:=True)
+        AddInterfaceTypeProperty(oPipeRun, "IJRteInsulation", "Material", PropertyTypes.codelist, listItemName:="Insulation Material", changeable:=True)
+        AddInterfaceTypeProperty(oPipeRun, "IJRteInsulation", "Thickness", PropertyTypes.codelist, listItemName:="Insulation Thikness", changeable:=True)
+
+        'Dim dInsulationThickness As Double = DirectCast(oPipeRun.GetPropertyValue("IJRteInsulation", "Thickness"), PropertyValueDouble).PropValue
+        'CreateNewLI("InsulationThickness", CStr(dInsulationThickness * 1000.0))
 
     End Sub
 
@@ -359,11 +403,10 @@ eqp:
     End Sub
 
     Private Sub GetPipeLineData(oPipeLine As Pipeline)
-        Dim group As New ListViewGroup("Pieline")
-        lvProperties.Groups.Add(group)
-        lvProperties.Items.Add(CreateNewLI("Line Name", oPipeLine.ToString(), group))
-        lvProperties.Items.Add(CreateNewLI("Fluid System", GetCodelistedValue(oPipeLine.GetPropertyValue("IJPipelineSystem", "FluidSystem")), group))
-        lvProperties.Items.Add(CreateNewLI("Fluid Code", GetCodelistedValue(oPipeLine.GetPropertyValue("IJPipelineSystem", "FluidCode")), group))
+        AddGroup("Pipeline")
+        CreateNewLI("Line Name", oPipeLine.ToString())
+        AddInterfaceTypeProperty(oPipeLine, "IJPipelineSystem", "FluidSystem", PropertyTypes.codelist, listItemName:="Fluid System", changeable:=True)
+        AddInterfaceTypeProperty(oPipeLine, "IJPipelineSystem", "FluidCode", PropertyTypes.codelist, listItemName:="Fluid Code", changeable:=True, parentCodeListPropName:="FluidSystem")
     End Sub
 
     Private Sub GetPipeFeatureProperties(current_bo)
@@ -389,19 +432,13 @@ eqp:
     End Sub
 
     Private Sub GetPipeFeatureData(oPipeFeature As BusinessObject)
-        Dim group As New ListViewGroup("Feature")
-        lvProperties.Groups.Add(group)
-        lvProperties.Items.Add(CreateNewLI("OptionCode", oPipeFeature.GetPropertyValue("IJRtePipePathFeat", "CommodityOption").ToString(), group))
-        Dim Tag = oPipeFeature.GetPropertyValue("IJRtePipePathFeat", "Tag").ToString()
-        If Tag <> "" Then lvProperties.Items.Add(CreateNewLI("Tag", oPipeFeature.GetPropertyValue("IJRtePipePathFeat", "Tag").ToString(), group))
+        AddGroup("Feature")
+        AddInterfaceTypeProperty(oPipeFeature, "IJRtePipePathFeat", "CommodityOption", PropertyTypes.codelist, listItemName:="Option Code", changeable:=False)
+        'AddInterfaceTypeProperty(oPipeFeature, "IJRtePipePathFeat", "Tag", PropertyTypes.text, changeable:=True)
+        AddInterfaceTypeProperty(oPipeFeature, "IJRteInsulation", "Purpose", PropertyTypes.codelist, listItemName:="Insulation Purpose", changeable:=True)
+        AddInterfaceTypeProperty(oPipeFeature, "IJRteInsulation", "Material", PropertyTypes.codelist, listItemName:="Insulation Material", changeable:=True)
+        AddInterfaceTypeProperty(oPipeFeature, "IJRteInsulation", "Thickness", PropertyTypes.codelist, listItemName:="Insulation Thikness", changeable:=True)
 
-        Dim oPV As PropertyValueCodelist = oPipeFeature.GetPropertyValue("IJRteInsulation", "Purpose")
-        lvProperties.Items.Add(CreateNewLI("Insulation Purpose", oPV.PropertyInfo.CodeListInfo.GetCodelistItem(oPV.PropValue).ShortDisplayName, group))
-        oPV = oPipeFeature.GetPropertyValue("IJRteInsulation", "Material")
-        lvProperties.Items.Add(CreateNewLI("Insulation Material", oPV.PropertyInfo.CodeListInfo.GetCodelistItem(oPV.PropValue).ShortDisplayName, group))
-
-        Dim dInsulationThickness As Double = DirectCast(oPipeFeature.GetPropertyValue("IJRteInsulation", "Thickness"), PropertyValueDouble).PropValue
-        lvProperties.Items.Add(CreateNewLI("Insulation Thickness", CStr(dInsulationThickness * 1000.0), group))
     End Sub
 
     Private Function getFeatureFromPart(oBo As BusinessObject) As BusinessObject
@@ -446,25 +483,25 @@ eqp:
         For Each oItem In oImpliedItems.TargetObjects
             If oItem.SupportsInterface("IJRteBolt") Then
                 Dim group As New ListViewGroup("Bolt Set")
-                lvProperties.Groups.Add(group)
+                AddGroup(group)
                 oImpliedMatingParts = oItem.GetRelationship("ImpliedMatingParts", "UsedImpliedPart")
                 oBoltPart = oImpliedMatingParts.TargetObjects(0)
-                lvProperties.Items.Add(CreateNewLI("Bolt CommodityCode", oBoltPart.GetPropertyValue("IJBolt", "IndustryCommodityCode").ToString(), group))
-                lvProperties.Items.Add(CreateNewLI("BoltType", oBoltPart.GetPropertyValue("IJBolt", "BoltType").ToString(), group))
+                CreateNewLI("Bolt CommodityCode", oBoltPart.GetPropertyValue("IJBolt", "IndustryCommodityCode").ToString())
+                CreateNewLI("BoltType", oBoltPart.GetPropertyValue("IJBolt", "BoltType").ToString())
 
-                lvProperties.Items.Add(CreateNewLI("CalculatedLength", oItem.GetPropertyValue("IJRteBolt", "CalculatedLength").ToString(), group))
-                lvProperties.Items.Add(CreateNewLI("RoundedLength", oItem.GetPropertyValue("IJRteBolt", "RoundedLength").ToString(), group))
-                lvProperties.Items.Add(CreateNewLI("Quantity", oItem.GetPropertyValue("IJRteBolt", "Quantity").ToString(), group))
-                lvProperties.Items.Add(CreateNewLI("Diameter", oItem.GetPropertyValue("IJRteBolt", "Diameter").ToString(), group))
+                CreateNewLI("CalculatedLength", oItem.GetPropertyValue("IJRteBolt", "CalculatedLength").ToString())
+                CreateNewLI("RoundedLength", oItem.GetPropertyValue("IJRteBolt", "RoundedLength").ToString())
+                CreateNewLI("Quantity", oItem.GetPropertyValue("IJRteBolt", "Quantity").ToString())
+                CreateNewLI("Diameter", oItem.GetPropertyValue("IJRteBolt", "Diameter").ToString())
             End If
 
             If oItem.SupportsInterface("IJRteGasket") Then
                 Dim group As New ListViewGroup("Gasket")
-                lvProperties.Groups.Add(group)
+                AddGroup(group)
                 oImpliedMatingParts = oItem.GetRelationship("ImpliedMatingParts", "UsedImpliedPart")
                 oGasketPart = oImpliedMatingParts.TargetObjects(0)
-                lvProperties.Items.Add(CreateNewLI("Gasket CommodityCode", oGasketPart.GetPropertyValue("IJGasket", "IndustryCommodityCode").ToString(), group))
-                lvProperties.Items.Add(CreateNewLI("Gasket Thikness", oGasketPart.GetPropertyValue("IJGasket", "ThicknessFor3DModel").ToString(), group))
+                CreateNewLI("Gasket CommodityCode", oGasketPart.GetPropertyValue("IJGasket", "IndustryCommodityCode").ToString())
+                CreateNewLI("Gasket Thikness", oGasketPart.GetPropertyValue("IJGasket", "ThicknessFor3DModel").ToString())
             End If
 
         Next
@@ -485,20 +522,19 @@ eqp:
     End Sub
 
     Private Sub GetConnectionData(oConn As Ingr.SP3D.Route.Middle.Connection, connIndex As Integer)
-        Dim group As New ListViewGroup("Connection " + connIndex.ToString())
-        lvProperties.Groups.Add(group)
-        lvProperties.Items.Add(CreateNewLI("Type", oConn.GetPropertyValue("IJDistribConnection", "ConnectionType").ToString(), group))
+        AddGroup("Connection " + connIndex.ToString())
+        CreateNewLI("Type", oConn.GetPropertyValue("IJDistribConnection", "ConnectionType").ToString())
         Dim i = 1
         For Each oPart In oConn.ConnectionParts
-            lvProperties.Items.Add(CreateNewLI("Part " + i.ToString(), oPart.ToString(), group))
+            CreateNewLI("Part " + i.ToString(), oPart.ToString())
             i = i + 1
         Next
 
-        Call GetConnectionItems(oConn, group)
+        Call GetConnectionItems(oConn)
 
     End Sub
 
-    Private Sub GetConnectionItems(oConn As Ingr.SP3D.Route.Middle.Connection, group As ListViewGroup)
+    Private Sub GetConnectionItems(oConn As Ingr.SP3D.Route.Middle.Connection)
         Dim oImpliedMatingParts As RelationCollection
         Dim oBoltPart As BusinessObject
         Dim oGasketPart As BusinessObject
@@ -507,27 +543,25 @@ eqp:
                 If oItem.SupportsInterface("IJRteBolt") Then
                     oImpliedMatingParts = oItem.GetRelationship("ImpliedMatingParts", "UsedImpliedPart")
                     oBoltPart = oImpliedMatingParts.TargetObjects(0)
-                    lvProperties.Items.Add(CreateNewLI("Bolt CommodityCode", oBoltPart.GetPropertyValue("IJBolt", "IndustryCommodityCode").ToString(), group))
-                    lvProperties.Items.Add(CreateNewLI("BoltType", oBoltPart.GetPropertyValue("IJBolt", "BoltType").ToString(), group))
+                    CreateNewLI("Bolt CommodityCode", oBoltPart.GetPropertyValue("IJBolt", "IndustryCommodityCode").ToString())
+                    CreateNewLI("BoltType", oBoltPart.GetPropertyValue("IJBolt", "BoltType").ToString())
 
-                    lvProperties.Items.Add(CreateNewLI("CalculatedLength", oItem.GetPropertyValue("IJRteBolt", "CalculatedLength").ToString(), group))
-                    lvProperties.Items.Add(CreateNewLI("RoundedLength", oItem.GetPropertyValue("IJRteBolt", "RoundedLength").ToString(), group))
-                    lvProperties.Items.Add(CreateNewLI("Quantity", oItem.GetPropertyValue("IJRteBolt", "Quantity").ToString(), group))
-                    lvProperties.Items.Add(CreateNewLI("Diameter", oItem.GetPropertyValue("IJRteBolt", "Diameter").ToString(), group))
+                    CreateNewLI("CalculatedLength", oItem.GetPropertyValue("IJRteBolt", "CalculatedLength").ToString())
+                    CreateNewLI("RoundedLength", oItem.GetPropertyValue("IJRteBolt", "RoundedLength").ToString())
+                    CreateNewLI("Quantity", oItem.GetPropertyValue("IJRteBolt", "Quantity").ToString())
+                    CreateNewLI("Diameter", oItem.GetPropertyValue("IJRteBolt", "Diameter").ToString())
                 End If
 
                 If oItem.SupportsInterface("IJRteGasket") Then
                     oImpliedMatingParts = oItem.GetRelationship("ImpliedMatingParts", "UsedImpliedPart")
                     oGasketPart = oImpliedMatingParts.TargetObjects(0)
-                    lvProperties.Items.Add(CreateNewLI("Gasket CommodityCode", oGasketPart.GetPropertyValue("IJGasket", "IndustryCommodityCode").ToString(), group))
-                    lvProperties.Items.Add(CreateNewLI("Gasket Thikness", oGasketPart.GetPropertyValue("IJGasket", "ThicknessFor3DModel").ToString(), group))
+                    CreateNewLI("Gasket CommodityCode", oGasketPart.GetPropertyValue("IJGasket", "IndustryCommodityCode").ToString())
+                    CreateNewLI("Gasket Thikness", oGasketPart.GetPropertyValue("IJGasket", "ThicknessFor3DModel").ToString())
                 End If
 
             Catch
 
             End Try
-
-
 
         Next
 
@@ -535,12 +569,16 @@ eqp:
 
     Private Sub GetNotes(oBO As BusinessObject)
         Dim group As New ListViewGroup("Notes")
-        lvProperties.Groups.Add(group)
+        AddGroup("Notes")
         Dim RC As RelationCollection
         RC = oBO.GetRelationship("ContainsNote", "GeneralNote")
         If RC.TargetObjects.Count > 0 Then
+            Dim i As Integer = 1
             For Each note As Note In RC.TargetObjects
-                lvProperties.Items.Add(CreateNewLI(note.Name, note.Text, group))
+                AddInterfaceTypeProperty(note, "IJGeneralNote", "Name", PropertyTypes.text, listItemName:="Note " + CStr(i) + " Name", changeable:=True)
+                AddInterfaceTypeProperty(note, "IJGeneralNote", "Text", PropertyTypes.text, listItemName:="Note " + CStr(i) + " Text", changeable:=True)
+                AddInterfaceTypeProperty(note, "IJGeneralNote", "Purpose", PropertyTypes.codelist, listItemName:="Note " + CStr(i) + " Purpose", changeable:=True)
+                i = i + 1
             Next
         End If
 
@@ -576,19 +614,19 @@ eqp:
 
     Private Sub GetMemberPartPrismaticData(oMemberPart As MemberPart)
         Dim group As New ListViewGroup("Member Part")
-        lvProperties.Groups.Add(group)
-        lvProperties.Items.Add(CreateNewLI("Name", oMemberPart.Name, group))
-        lvProperties.Items.Add(CreateNewLI("Type", GetCodelistedValue(oMemberPart.GetPropertyValue("ISPSMemberType", "Type")), group))
-        lvProperties.Items.Add(CreateNewLI("CutLength", FormatDistanceValue(oMemberPart.CutLength), group))
+        AddGroup("Member Part")
+        CreateNewLI("Name", oMemberPart.Name)
+        CreateNewLI("Type", GetCodelistedValue(oMemberPart.GetPropertyValue("ISPSMemberType", "Type")))
+        CreateNewLI("CutLength", FormatDistanceValue(oMemberPart.CutLength))
         Dim group2 = New ListViewGroup("CrossSection")
-        lvProperties.Groups.Add(group2)
+        'lvProperties.Groups.Add(group2)
         Dim crossSect As Ingr.SP3D.ReferenceData.Middle.CrossSection
         crossSect = oMemberPart.CrossSection
 
-        lvProperties.Items.Add(CreateNewLI("Name", oMemberPart.CrossSection.ToString(), group2))
-        lvProperties.Items.Add(CreateNewLI("SectionStandard", crossSect.CrossSectionStandard.ToString(), group2))
-        'lvProperties.Items.Add(CreateNewLI("SectionType", crossSect.CrossSectionType.ToString(), group2))
-        lvProperties.Items.Add(CreateNewLI("SectionClass", crossSect.CrossSectionClass.ToString(), group2))
+        CreateNewLI("Name", oMemberPart.CrossSection.ToString())
+        CreateNewLI("SectionStandard", crossSect.CrossSectionStandard.ToString())
+        'CreateNewLI("SectionType", crossSect.CrossSectionType.ToString())
+        CreateNewLI("SectionClass", crossSect.CrossSectionClass.ToString())
 
     End Sub
 
@@ -619,38 +657,77 @@ eqp:
 
     Private Sub GetMemberSystemData(oMemberSystem As MemberSystem)
         Dim group As New ListViewGroup("Member System")
-        lvProperties.Groups.Add(group)
-        lvProperties.Items.Add(CreateNewLI("System Name", oMemberSystem.ToString(), group))
-        lvProperties.Items.Add(CreateNewLI("System Type", GetCodelistedValue(oMemberSystem.GetPropertyValue("ISPSMemberType", "Type")), group))
-        lvProperties.Items.Add(CreateNewLI("Length", oMemberSystem.GetPropertyValue("IJLine", "Length").ToString(), group))
+        AddGroup("Member System")
+        CreateNewLI("System Name", oMemberSystem.ToString())
+        CreateNewLI("System Type", GetCodelistedValue(oMemberSystem.GetPropertyValue("ISPSMemberType", "Type")))
+        CreateNewLI("Length", oMemberSystem.GetPropertyValue("IJLine", "Length").ToString())
 
     End Sub
 
     Private Sub GetSlabProperties(oSlab As Slab)
         Dim group As New ListViewGroup("Slab")
-        lvProperties.Groups.Add(group)
-        lvProperties.Items.Add(CreateNewLI("Priority", GetCodelistedValue(oSlab.GetPropertyValue("IJUASlabGeneralType", "Priority")), group))
-        lvProperties.Items.Add(CreateNewLI("Composition", oSlab.Composition.ToString(), group))
+        AddGroup("Slab")
+        CreateNewLI("Priority", GetCodelistedValue(oSlab.GetPropertyValue("IJUASlabGeneralType", "Priority")))
+        CreateNewLI("Composition", oSlab.Composition.ToString())
     End Sub
 
-    Private Function CreateNewLI(name As String, value As String, Optional group As ListViewGroup = Nothing)
-        Dim str(2) As String
-        str(0) = name
-        str(1) = value
+    Private Sub AddGroup(group As String)
+        Dim row(2) As String
+        Dim idx As Integer
+        row(0) = group
+        idx = lvProperties.Rows.Add(row)
+        lvProperties.Rows(idx).DefaultCellStyle = GroupStyle
+    End Sub
 
-        Dim listItem As New ListViewItem(str)
-        If Not group Is Nothing Then
-            listItem.Group = group
+    Private Sub AddInterfaceTypeProperty(ByRef oBO As BusinessObject, ifaceName As String, propName As String, propType As PropertyTypes,
+                                         Optional parentCodeListPropName As String = "", Optional listItemName As String = Nothing, Optional changeable As Boolean = False)
+        Dim codelistInfo = Nothing
+
+        If listItemName Is Nothing Then listItemName = propName
+        If Not oBO.SupportsInterface(ifaceName) Then Exit Sub
+
+        Dim pv As PropertyValue = oBO.GetPropertyValue(ifaceName, propName)
+        Dim txtProperty As String = ""
+
+        If propType = PropertyTypes.codelist Then
+            codelistInfo = pv.PropertyInfo.CodeListInfo
         End If
-        Return listItem
 
-    End Function
+        If pv.ToString <> "" Then
+            If pv.PropertyInfo.UOMType = UnitType.Undefined Then
+                txtProperty = pv.ToString()
+            Else
+                txtProperty = m_UOM.FormatUnit(pv)
+            End If
+        End If
+
+
+        CreateNewLI(listItemName, txtProperty, changeable:=changeable)
+        If changeable = True Then
+            changeables.Add(listItemName,
+                            New ChangeableEntity(oBO, ifaceName:=ifaceName,
+                                                 propName:=propName,
+                                                 propType:=propType,
+                                                 clInfo:=codelistInfo,
+                                                 pclPropName:=parentCodeListPropName))
+        End If
+    End Sub
 
 
 
-    Private Sub Form1_Resize(sender As Object, e As EventArgs) Handles Me.Resize
-        lvProperties.Width = Me.Width - 10
-        lvProperties.Height = Me.Height - 40
+    Private Sub CreateNewLI(name As String, value As String, Optional changeable As Boolean = False)
+        Dim row(2) As String
+        Dim idx As Integer
+        row(0) = name
+        row(1) = value
+        idx = lvProperties.Rows.Add(row)
+
+        If changeable = True Then
+            Dim btnCell = New DataGridViewButtonCell()
+            lvProperties.Rows(idx).Cells(2) = btnCell
+            'lvProperties.Rows(idx).Cells(2).Value = ".."
+
+        End If
 
     End Sub
 
@@ -669,14 +746,188 @@ eqp:
     End Sub
 
 
-
-    Private Sub frmPropertyInspector_Activated(sender As Object, e As EventArgs) Handles Me.Activated
-
-    End Sub
-
     Private Sub frmPropertyInspector_Shown(sender As Object, e As EventArgs) Handles Me.Shown
         If m_oEVSelectSet.SelectedObjects.Count <> 0 Then
             Call ProcessSelection(m_oEVSelectSet.SelectedObjects.Item(0))
         End If
     End Sub
+
+    Private Sub lvProperties_CellContentClick(sender As Object, e As DataGridViewCellEventArgs) Handles lvProperties.CellContentClick
+
+        If e.RowIndex <= 0 Or e.ColumnIndex <> 2 Then
+            Exit Sub
+        End If
+        Dim propertyName As String = lvProperties(0, e.RowIndex).Value
+        Dim currPropertyValue As String = lvProperties(1, e.RowIndex).Value
+
+        Dim changeable As ChangeableEntity = Nothing
+        changeable = changeables.Item(propertyName)
+        If changeable Is Nothing Then Exit Sub
+
+        If propertyName = "Insulation Material" Then
+            Dim oInsulated As IPipeInsulation = changeable.item
+            If oInsulated.InsulationPurpose = -1 Then
+                MsgBox("Please select Insulation Purpose At first")
+                Exit Sub
+            End If
+        End If
+
+
+        If propertyName = "Insulation Thikness" Then
+            Dim oInsulated As IPipeInsulation = changeable.item
+            If oInsulated.InsulationMaterial = -1 Then
+                MsgBox("Please select Insulation Material At first")
+                Exit Sub
+            End If
+        End If
+
+        Dim values As List(Of String) = Nothing
+        If changeable.propertyType = PropertyTypes.codelist Then
+            values = GetPossiblePropertyValues(changeable)
+        End If
+
+
+        Dim NewValue As String
+        If propertyName = "Insulation Thikness" Then
+            NewValue = GetNewValue(PropertyTypes.codelist, currPropertyValue, values)
+        Else
+            NewValue = GetNewValue(changeable.propertyType, currPropertyValue, values)
+        End If
+
+        If NewValue <> "" And NewValue <> currPropertyValue Then
+            Try
+                changeable.changeProperty(NewValue, m_UOM)
+
+                If propertyName = "Insulation Thikness" Then
+                    m_oTransactionMgr.Commit("Change " + propertyName)
+                    Dim oInsulated As IPipeInsulation = changeable.item
+                    Dim currentBOClass1 = changeable.item.ClassInfo.DisplayName
+                    If currentBOClass1 = "Pipe Run" Then
+                        Dim oPipeRun As PipeRun = changeable.item
+                        oPipeRun.SetUserDefinedInsulation(oInsulated.InsulationPurpose, oInsulated.InsulationMaterial, oInsulated.InsulationThickness, 273)
+                    Else
+                        Dim oFeature As IPipePathFeature = changeable.item
+                        oFeature.SetUserDefinedInsulation(oInsulated.InsulationPurpose, oInsulated.InsulationMaterial, oInsulated.InsulationThickness, 273)
+                    End If
+                End If
+
+                m_oTransactionMgr.Commit("Change " + propertyName)
+                lvProperties(1, e.RowIndex).Value = NewValue
+            Catch
+                If propertyName = "Insulation Thikness" Then
+                    MsgBox("Ivalid combination Of Purpose, Material, thickness", vbCritical)
+                Else
+                    MsgBox("Failed to change property. Is object in Working status?", vbCritical)
+                End If
+            End Try
+        End If
+    End Sub
+
+    Private Function GetPossiblePropertyValues(ByRef changeable As ChangeableEntity)
+        Dim values = New List(Of String)
+        If changeable.interfaceName = "IJRteInsulation" And changeable.propertyName = "Material" Then
+            For Each material As InsulationMaterial In cHelper.GetInsulationMaterials(InsulationMaterialTypes.Piping)
+                values.Add(changeable.codelistInfo.GetCodelistItem(material.MaterialType).ToString())
+            Next
+        ElseIf changeable.interfaceName = "IJRteInsulation" And changeable.propertyName = "Thickness" Then
+            Dim oInsulated As IPipeInsulation = changeable.item
+            For Each material As InsulationMaterial In cHelper.GetInsulationMaterials(InsulationMaterialTypes.Piping)
+                If material.MaterialType = oInsulated.InsulationMaterial Then
+                    For Each thk As Double In material.AllowableThicknesses(InsulationMaterialTypes.Piping)
+                        values.Add(FormatDistanceValue(thk))
+                    Next
+                End If
+            Next
+        Else
+            If changeable.parentCodeListPropName <> "" Then
+
+                Dim pv As PropertyValueCodelist = changeable.item.GetPropertyValue(changeable.interfaceName, changeable.parentCodeListPropName)
+
+                For Each cl As CodelistItem In changeable.codelistInfo.Parent.GetChildCodelistMembers(pv.PropValue).Values
+                    values.Add(cl.ShortDisplayName)
+                Next
+            Else
+                For Each cl As CodelistItem In changeable.codelistInfo.CodelistMembers
+                    values.Add(cl.ShortDisplayName)
+                Next
+            End If
+
+        End If
+
+            Return values
+    End Function
+
+    Private Function GetNewValue(propertyType As String, currValue As String, Optional values As List(Of String) = Nothing)
+        Dim m_frmChange As frmPropertyInspectorChange = New frmPropertyInspectorChange(propertyType, currValue, values)
+        Dim result As DialogResult = m_frmChange.ShowDialog(Me)
+        If result = Windows.Forms.DialogResult.OK Then
+            Return m_frmChange.result
+        End If
+        Return ""
+    End Function
+
+    Private Function FormatDistanceValue(ByVal val As Double) As String
+        Return m_UOM.FormatUnit(UnitType.Distance, val)
+    End Function
+
+
 End Class
+
+Public Class ChangeableEntity
+    Public item As BusinessObject
+    Public interfaceName As String = Nothing
+    Public propertyName As String = Nothing
+    Public propertyType As String = Nothing
+    Public codelistInfo As CodelistInformation
+    Public parentCodeListPropName As String = ""
+
+    Public Sub New(ByRef newItem As BusinessObject,
+                                ByVal Optional propType As PropertyTypes = PropertyTypes.text,
+                                ByVal Optional ifaceName As String = Nothing,
+                                ByVal Optional propName As String = Nothing,
+                                ByVal Optional clInfo As CodelistInformation = Nothing,
+                                ByVal Optional pclPropName As String = "")
+        item = newItem
+        propertyType = propType
+        interfaceName = ifaceName
+        propertyName = propName
+        codelistInfo = clInfo
+        parentCodeListPropName = pclPropName
+
+
+    End Sub
+
+    Public Sub changeProperty(ByVal newValue, ByRef m_UOM)
+        If propertyName = "Name" And item.SupportsInterface("IJNamedItem") Then
+            Dim namedItem As INamedItem = item
+            namedItem.SetUserDefinedName(newValue)
+        ElseIf Not interfaceName Is Nothing Then
+            If propertyType = PropertyTypes.codelist Then
+                If interfaceName = "IJRteInsulation" And propertyName = "Thickness" Then
+                    Dim pv As PropertyValueDouble
+                    pv = item.GetPropertyValue(interfaceName, propertyName)
+                    pv.PropValue = m_UOM.ParseUnit(UnitType.Distance, newValue)
+                    item.SetPropertyValue(pv.PropValue, interfaceName, propertyName)
+                Else
+                    Dim oCL As CodelistItem
+                    oCL = codelistInfo.GetCodelistItem(newValue)
+                    item.SetPropertyValue(oCL, interfaceName, propertyName)
+                End If
+            ElseIf propertyType = PropertyTypes.distance Then
+                Dim pv As PropertyValueDouble
+                pv = item.GetPropertyValue(interfaceName, propertyName)
+                pv.PropValue = m_UOM.ParseUnit(UnitType.Distance, newValue)
+                item.SetPropertyValue(pv.PropValue, interfaceName, propertyName)
+            Else
+                item.SetPropertyValue(newValue, interfaceName, propertyName)
+            End If
+        End If
+    End Sub
+
+
+End Class
+Public Enum PropertyTypes
+    text = 1
+    codelist = 2
+    distance = 3
+End Enum
