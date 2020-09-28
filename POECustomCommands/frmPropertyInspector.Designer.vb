@@ -56,26 +56,28 @@ Partial Class frmPropertyInspector
         Me.lvProperties.ReadOnly = True
         Me.lvProperties.RowHeadersVisible = False
         Me.lvProperties.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect
-        Me.lvProperties.Size = New System.Drawing.Size(335, 791)
+        Me.lvProperties.Size = New System.Drawing.Size(321, 791)
         Me.lvProperties.TabIndex = 2
         '
         'PropertyName
         '
-        Me.PropertyName.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.AllCells
+        Me.PropertyName.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.None
         Me.PropertyName.HeaderText = "Property"
         Me.PropertyName.MinimumWidth = 137
         Me.PropertyName.Name = "PropertyName"
         Me.PropertyName.ReadOnly = True
+        Me.PropertyName.Resizable = System.Windows.Forms.DataGridViewTriState.[False]
         Me.PropertyName.Width = 137
         '
         'PropertyValue
         '
-        Me.PropertyValue.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.AllCells
+        Me.PropertyValue.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.None
         Me.PropertyValue.HeaderText = "Value"
-        Me.PropertyValue.MinimumWidth = 137
+        Me.PropertyValue.MinimumWidth = 150
         Me.PropertyValue.Name = "PropertyValue"
         Me.PropertyValue.ReadOnly = True
-        Me.PropertyValue.Width = 137
+        Me.PropertyValue.Resizable = System.Windows.Forms.DataGridViewTriState.[True]
+        Me.PropertyValue.Width = 150
         '
         'ButtonColumn
         '
@@ -91,7 +93,7 @@ Partial Class frmPropertyInspector
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
-        Me.ClientSize = New System.Drawing.Size(335, 833)
+        Me.ClientSize = New System.Drawing.Size(321, 833)
         Me.Controls.Add(Me.lvProperties)
         Me.Controls.Add(Me.CheckBoxLongFormat)
         Me.Name = "frmPropertyInspector"

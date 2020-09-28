@@ -43,7 +43,6 @@ Public Class frmPropertyInspector
         lvProperties.CellBorderStyle = DataGridViewCellBorderStyle.Single
         lvProperties.ColumnCount = 3
 
-
         GroupStyle = New DataGridViewCellStyle()
         GroupStyle.Font = New Font(lvProperties.DefaultCellStyle.Font.FontFamily, 9, FontStyle.Bold)
         GroupStyle.ForeColor = Color.Blue
@@ -388,12 +387,26 @@ eqp:
         CreateNewLI("Run Name", oPipeRun.ToString())
         CreateNewLI("Piping Spec", oPipeRun.Specification.SpecificationName)
 
+        AddInterfaceTypeProperty(oPipeRun, "IJRteInsulation", "Purpose", PropertyTypes.insulationSpec, listItemName:="Insulation Spec", changeable:=True)
+
         AddInterfaceTypeProperty(oPipeRun, "IJRteInsulation", "Purpose", PropertyTypes.codelist, listItemName:="Insulation Purpose", changeable:=True)
         AddInterfaceTypeProperty(oPipeRun, "IJRteInsulation", "Material", PropertyTypes.codelist, listItemName:="Insulation Material", changeable:=True)
         AddInterfaceTypeProperty(oPipeRun, "IJRteInsulation", "Thickness", PropertyTypes.codelist, listItemName:="Insulation Thikness", changeable:=True)
 
-        'Dim dInsulationThickness As Double = DirectCast(oPipeRun.GetPropertyValue("IJRteInsulation", "Thickness"), PropertyValueDouble).PropValue
-        'CreateNewLI("InsulationThickness", CStr(dInsulationThickness * 1000.0))
+
+        Dim oInsulSpec As PipeInsulationSpec = Nothing
+        Dim oPipeLine As Pipeline = oPipeRun.SystemParent
+        Dim oPipelineSpecs As IAllowableSpecs = oPipeLine
+        'Dim oSpecCollection As ReadOnlyCollection(Of SpecificationBase) = oPipelineSpecs.AllowableSpecs
+        'Dim oSpec As BusinessObject
+        'For Each oSpec In oPipelineSpecs.AllowableSpecs
+        ' If oSpec.SupportsInterface("IJPipeInsulationSpec") Then
+        ' oInsulSpec = oSpec
+        ' MsgBox(oInsulSpec.SpecificationName)
+        ' End If
+        'Next
+        'MsgBox(oPipeRun.InsulationSpec.ToString())
+
 
     End Sub
 
@@ -435,9 +448,10 @@ eqp:
         AddGroup("Feature")
         AddInterfaceTypeProperty(oPipeFeature, "IJRtePipePathFeat", "CommodityOption", PropertyTypes.codelist, listItemName:="Option Code", changeable:=False)
         'AddInterfaceTypeProperty(oPipeFeature, "IJRtePipePathFeat", "Tag", PropertyTypes.text, changeable:=True)
-        AddInterfaceTypeProperty(oPipeFeature, "IJRteInsulation", "Purpose", PropertyTypes.codelist, listItemName:="Insulation Purpose", changeable:=True)
-        AddInterfaceTypeProperty(oPipeFeature, "IJRteInsulation", "Material", PropertyTypes.codelist, listItemName:="Insulation Material", changeable:=True)
-        AddInterfaceTypeProperty(oPipeFeature, "IJRteInsulation", "Thickness", PropertyTypes.codelist, listItemName:="Insulation Thikness", changeable:=True)
+        AddInterfaceTypeProperty(oPipeFeature, "IJRteInsulation", "Purpose", PropertyTypes.insulationSpec, listItemName:="Insulation Spec of Feat.", changeable:=True)
+        AddInterfaceTypeProperty(oPipeFeature, "IJRteInsulation", "Purpose", PropertyTypes.codelist, listItemName:="Insulation Purpose of Feat.", changeable:=True)
+        AddInterfaceTypeProperty(oPipeFeature, "IJRteInsulation", "Material", PropertyTypes.codelist, listItemName:="Insulation Material of Feat.", changeable:=True)
+        AddInterfaceTypeProperty(oPipeFeature, "IJRteInsulation", "Thickness", PropertyTypes.codelist, listItemName:="Insulation Thikness of Feat.", changeable:=True)
 
     End Sub
 
@@ -471,44 +485,6 @@ eqp:
         End If
     End Function
 
-#If comment Then
-    Private Sub GetBoltingData(businessObject As BusinessObject)
-        Dim oImpliedItems As RelationCollection
-        Dim oImpliedMatingParts As RelationCollection
-        Dim oBoltPart As BusinessObject
-        Dim oGasketPart As BusinessObject
-
-        oImpliedItems = businessObject.GetRelationship("OwnsImpliedItems", "ImpliedItem")
-
-        For Each oItem In oImpliedItems.TargetObjects
-            If oItem.SupportsInterface("IJRteBolt") Then
-                Dim group As New ListViewGroup("Bolt Set")
-                AddGroup(group)
-                oImpliedMatingParts = oItem.GetRelationship("ImpliedMatingParts", "UsedImpliedPart")
-                oBoltPart = oImpliedMatingParts.TargetObjects(0)
-                CreateNewLI("Bolt CommodityCode", oBoltPart.GetPropertyValue("IJBolt", "IndustryCommodityCode").ToString())
-                CreateNewLI("BoltType", oBoltPart.GetPropertyValue("IJBolt", "BoltType").ToString())
-
-                CreateNewLI("CalculatedLength", oItem.GetPropertyValue("IJRteBolt", "CalculatedLength").ToString())
-                CreateNewLI("RoundedLength", oItem.GetPropertyValue("IJRteBolt", "RoundedLength").ToString())
-                CreateNewLI("Quantity", oItem.GetPropertyValue("IJRteBolt", "Quantity").ToString())
-                CreateNewLI("Diameter", oItem.GetPropertyValue("IJRteBolt", "Diameter").ToString())
-            End If
-
-            If oItem.SupportsInterface("IJRteGasket") Then
-                Dim group As New ListViewGroup("Gasket")
-                AddGroup(group)
-                oImpliedMatingParts = oItem.GetRelationship("ImpliedMatingParts", "UsedImpliedPart")
-                oGasketPart = oImpliedMatingParts.TargetObjects(0)
-                CreateNewLI("Gasket CommodityCode", oGasketPart.GetPropertyValue("IJGasket", "IndustryCommodityCode").ToString())
-                CreateNewLI("Gasket Thikness", oGasketPart.GetPropertyValue("IJGasket", "ThicknessFor3DModel").ToString())
-            End If
-
-        Next
-
-    End Sub
-
-#End If
 
     Private Sub GetBoltingData(businessObject As BusinessObject)
         Dim oConnections As RelationCollection
@@ -687,25 +663,46 @@ eqp:
         If Not oBO.SupportsInterface(ifaceName) Then Exit Sub
 
         Dim pv As PropertyValue = oBO.GetPropertyValue(ifaceName, propName)
+
         Dim txtProperty As String = ""
 
         If propType = PropertyTypes.codelist Then
             codelistInfo = pv.PropertyInfo.CodeListInfo
         End If
 
-        If pv.ToString <> "" Then
-            If pv.PropertyInfo.UOMType = UnitType.Undefined Then
-                txtProperty = pv.ToString()
+
+        If propType = PropertyTypes.insulationSpec Then
+            Dim pvcl As PropertyValueCodelist = pv
+            If pvcl.PropValue = -1 Then
+                txtProperty = "Not Insulated"
             Else
-                txtProperty = m_UOM.FormatUnit(pv)
+                txtProperty = "User Defined"
+            End If
+        Else
+            If pv.ToString <> "" Then
+                If propType = PropertyTypes.insulationSpec Then
+                    Dim pvcl As PropertyValueCodelist = pv
+                    If pvcl.PropValue = -1 Then
+                        txtProperty = "Not Insulated"
+                    Else
+                        txtProperty = "User Defined"
+                    End If
+                Else
+
+                    If pv.PropertyInfo.UOMType = UnitType.Undefined Then
+                        txtProperty = pv.ToString()
+                    Else
+                        txtProperty = m_UOM.FormatUnit(pv)
+                    End If
+                End If
             End If
         End If
 
-
         CreateNewLI(listItemName, txtProperty, changeable:=changeable)
-        If changeable = True Then
+        If changeable = True And Not changeables.ContainsKey(listItemName) Then
             changeables.Add(listItemName,
-                            New ChangeableEntity(oBO, ifaceName:=ifaceName,
+                            New ChangeableEntity(oBO,
+                                                 ifaceName:=ifaceName,
                                                  propName:=propName,
                                                  propType:=propType,
                                                  clInfo:=codelistInfo,
@@ -764,6 +761,7 @@ eqp:
         changeable = changeables.Item(propertyName)
         If changeable Is Nothing Then Exit Sub
 
+
         If propertyName = "Insulation Material" Then
             Dim oInsulated As IPipeInsulation = changeable.item
             If oInsulated.InsulationPurpose = -1 Then
@@ -782,8 +780,13 @@ eqp:
         End If
 
         Dim values As List(Of String) = Nothing
-        If changeable.propertyType = PropertyTypes.codelist Then
+        If changeable.propertyType = PropertyTypes.codelist Or changeable.propertyType = PropertyTypes.insulationSpec Then
             values = GetPossiblePropertyValues(changeable)
+        End If
+
+        Dim namingRule As String = Nothing
+        If propertyName = "Name" Then
+            namingRule = GetNamingRule(changeable.item)
         End If
 
 
@@ -791,13 +794,12 @@ eqp:
         If propertyName = "Insulation Thikness" Then
             NewValue = GetNewValue(PropertyTypes.codelist, currPropertyValue, values)
         Else
-            NewValue = GetNewValue(changeable.propertyType, currPropertyValue, values)
+            NewValue = GetNewValue(changeable.propertyType, currPropertyValue, values, namingRule:=namingRule)
         End If
 
         If NewValue <> "" And NewValue <> currPropertyValue Then
             Try
                 changeable.changeProperty(NewValue, m_UOM)
-
                 If propertyName = "Insulation Thikness" Then
                     m_oTransactionMgr.Commit("Change " + propertyName)
                     Dim oInsulated As IPipeInsulation = changeable.item
@@ -805,6 +807,7 @@ eqp:
                     If currentBOClass1 = "Pipe Run" Then
                         Dim oPipeRun As PipeRun = changeable.item
                         oPipeRun.SetUserDefinedInsulation(oInsulated.InsulationPurpose, oInsulated.InsulationMaterial, oInsulated.InsulationThickness, 273)
+
                     Else
                         Dim oFeature As IPipePathFeature = changeable.item
                         oFeature.SetUserDefinedInsulation(oInsulated.InsulationPurpose, oInsulated.InsulationMaterial, oInsulated.InsulationThickness, 273)
@@ -813,6 +816,11 @@ eqp:
 
                 m_oTransactionMgr.Commit("Change " + propertyName)
                 lvProperties(1, e.RowIndex).Value = NewValue
+                If changeable.propertyType = PropertyTypes.insulationSpec Then
+                    If NewValue = "Not Insulated" Then
+                        ProcessSelection(current_bo)
+                    End If
+                End If
             Catch
                 If propertyName = "Insulation Thikness" Then
                     MsgBox("Ivalid combination Of Purpose, Material, thickness", vbCritical)
@@ -823,9 +831,25 @@ eqp:
         End If
     End Sub
 
+    Private Function GetNamingRule(oBo As BusinessObject)
+        Dim oRelationColl As RelationCollection = oBo.GetRelationship("NamedEntity", "entityAE")
+        Dim sNameRule As String
+        If oRelationColl.TargetObjects.Count <> 0 Then
+            sNameRule = oRelationColl.TargetObjects(0).GetRelationship("EntityNamingRule", "namingRule").TargetObjects(0).GetPropertyValue("IJDNameRuleHolder", "Name").ToString()
+        Else
+            sNameRule = "User Defined"
+        End If
+        Return sNameRule
+    End Function
+
+
     Private Function GetPossiblePropertyValues(ByRef changeable As ChangeableEntity)
         Dim values = New List(Of String)
-        If changeable.interfaceName = "IJRteInsulation" And changeable.propertyName = "Material" Then
+        If changeable.propertyType = PropertyTypes.insulationSpec Then
+            values.Add("Not Insulated")
+            values.Add("User Defined")
+
+        ElseIf changeable.interfaceName = "IJRteInsulation" And changeable.propertyName = "Material" Then
             For Each material As InsulationMaterial In cHelper.GetInsulationMaterials(InsulationMaterialTypes.Piping)
                 values.Add(changeable.codelistInfo.GetCodelistItem(material.MaterialType).ToString())
             Next
@@ -857,8 +881,8 @@ eqp:
             Return values
     End Function
 
-    Private Function GetNewValue(propertyType As String, currValue As String, Optional values As List(Of String) = Nothing)
-        Dim m_frmChange As frmPropertyInspectorChange = New frmPropertyInspectorChange(propertyType, currValue, values)
+    Private Function GetNewValue(propertyType As String, currValue As String, Optional values As List(Of String) = Nothing, Optional namingRule As String = Nothing)
+        Dim m_frmChange As frmPropertyInspectorChange = New frmPropertyInspectorChange(propertyType, currValue, values, namingRule)
         Dim result As DialogResult = m_frmChange.ShowDialog(Me)
         If result = Windows.Forms.DialogResult.OK Then
             Return m_frmChange.result
@@ -902,26 +926,33 @@ Public Class ChangeableEntity
             Dim namedItem As INamedItem = item
             namedItem.SetUserDefinedName(newValue)
         ElseIf Not interfaceName Is Nothing Then
-            If propertyType = PropertyTypes.codelist Then
-                If interfaceName = "IJRteInsulation" And propertyName = "Thickness" Then
+            If propertyType = PropertyTypes.insulationSpec Then
+                If newValue = "Not Insulated" Then
+                    item.SetPropertyValue(-1, "IJRteInsulation", "Purpose")
+                    item.SetPropertyValue(-1, "IJRteInsulation", "Material")
+                    item.SetPropertyValue(False, "IJRteInsulation", "IsInsulated")
+                End If
+
+            ElseIf propertyType = PropertyTypes.codelist Then
+                    If interfaceName = "IJRteInsulation" And propertyName = "Thickness" Then
+                        Dim pv As PropertyValueDouble
+                        pv = item.GetPropertyValue(interfaceName, propertyName)
+                        pv.PropValue = m_UOM.ParseUnit(UnitType.Distance, newValue)
+                        item.SetPropertyValue(pv.PropValue, interfaceName, propertyName)
+                    Else
+                        Dim oCL As CodelistItem
+                        oCL = codelistInfo.GetCodelistItem(newValue)
+                        item.SetPropertyValue(oCL, interfaceName, propertyName)
+                    End If
+                ElseIf propertyType = PropertyTypes.distance Then
                     Dim pv As PropertyValueDouble
                     pv = item.GetPropertyValue(interfaceName, propertyName)
                     pv.PropValue = m_UOM.ParseUnit(UnitType.Distance, newValue)
                     item.SetPropertyValue(pv.PropValue, interfaceName, propertyName)
                 Else
-                    Dim oCL As CodelistItem
-                    oCL = codelistInfo.GetCodelistItem(newValue)
-                    item.SetPropertyValue(oCL, interfaceName, propertyName)
+                    item.SetPropertyValue(newValue, interfaceName, propertyName)
                 End If
-            ElseIf propertyType = PropertyTypes.distance Then
-                Dim pv As PropertyValueDouble
-                pv = item.GetPropertyValue(interfaceName, propertyName)
-                pv.PropValue = m_UOM.ParseUnit(UnitType.Distance, newValue)
-                item.SetPropertyValue(pv.PropValue, interfaceName, propertyName)
-            Else
-                item.SetPropertyValue(newValue, interfaceName, propertyName)
             End If
-        End If
     End Sub
 
 
@@ -930,4 +961,10 @@ Public Enum PropertyTypes
     text = 1
     codelist = 2
     distance = 3
+    insulationSpec = 4
+End Enum
+
+Public Enum InsulationSpecs
+    NotInsulated = -1
+    UserDefined = 1
 End Enum

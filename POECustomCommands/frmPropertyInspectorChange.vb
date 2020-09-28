@@ -5,19 +5,21 @@ Public Class frmPropertyInspectorChange
     Private propertyType As PropertyTypes
     Private values As List(Of String)
     Private currPropValue As String
+    Private textLabel As System.Windows.Forms.Label
     Private textBox1 As System.Windows.Forms.TextBox
     Private comboBox1 As System.Windows.Forms.ComboBox
     Private WithEvents ButtonOK As Windows.Forms.Button
     Private WithEvents ButtonCancel As Windows.Forms.Button
+    Private namingRule As String
     Public result As String
 
 
-    Sub New(propType As PropertyTypes, currValue As String, Optional values As List(Of String) = Nothing)
+    Sub New(propType As PropertyTypes, currValue As String, Optional values As List(Of String) = Nothing, Optional namingRule As String = Nothing)
         MyBase.New()
+        Me.namingRule = namingRule
         Me.propertyType = propType
         Me.currPropValue = currValue
         Me.values = values
-        Me.Text = "Edit Property"
         InitializeComponent()
 
     End Sub
@@ -26,14 +28,26 @@ Public Class frmPropertyInspectorChange
     Private Sub InitializeComponent()
 
         If propertyType = PropertyTypes.text Or propertyType = PropertyTypes.distance Then
+
+            If Not Me.namingRule Is Nothing Then
+                Me.textLabel = New System.Windows.Forms.Label()
+                Me.textLabel.Location = New System.Drawing.Point(10, 5)
+                Me.textLabel.Size = New System.Drawing.Size(280, 40)
+                Me.textLabel.Text = "Current Naming Rule: " + namingRule
+                If namingRule <> "User Defined" Then
+                    Me.textLabel.ForeColor = Drawing.Color.Red
+                    Me.textLabel.Text = Me.textLabel.Text & Environment.NewLine & "Please do not change unless necessary."
+                End If
+            End If
+
             Me.textBox1 = New System.Windows.Forms.TextBox()
-            Me.textBox1.Location = New System.Drawing.Point(10, 20)
+            Me.textBox1.Location = New System.Drawing.Point(10, 45)
             Me.textBox1.Size = New System.Drawing.Size(280, 20)
             Me.textBox1.TabIndex = 0
             Me.textBox1.Text = currPropValue
         End If
 
-        If propertyType = PropertyTypes.codelist Then
+        If propertyType = PropertyTypes.codelist Or propertyType = PropertyTypes.insulationSpec Then
             Me.comboBox1 = New System.Windows.Forms.ComboBox()
             Me.comboBox1.DropDownWidth = 280
             Me.comboBox1.Location = New System.Drawing.Point(10, 20)
@@ -49,7 +63,7 @@ Public Class frmPropertyInspectorChange
         End If
 
 
-            Me.ButtonOK = New System.Windows.Forms.Button()
+        Me.ButtonOK = New System.Windows.Forms.Button()
         Me.ButtonCancel = New System.Windows.Forms.Button()
 
         'ButtonOK
@@ -77,6 +91,9 @@ Public Class frmPropertyInspectorChange
         Me.ClientSize = New System.Drawing.Size(328, 170)
         Me.ControlBox = False
         If propertyType = PropertyTypes.text Or propertyType = PropertyTypes.distance Then
+            If Not Me.namingRule Is Nothing Then
+                Me.Controls.Add(Me.textLabel)
+            End If
             Me.Controls.Add(Me.textBox1)
         Else
             Me.Controls.Add(Me.comboBox1)
@@ -87,7 +104,7 @@ Public Class frmPropertyInspectorChange
 
         Me.Name = "frmPropertyInspectorChange"
         Me.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent
-        Me.Text = "frmPropertyInspectorChange"
+        Me.Text = "Change Property"
         Me.ResumeLayout(False)
     End Sub
 
