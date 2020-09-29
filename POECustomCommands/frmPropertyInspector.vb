@@ -187,9 +187,18 @@ Public Class frmPropertyInspector
         AddInterfaceTypeProperty(cBO, "IJEquipmentPart", "ProcessEqTypes0",
                                  PropertyTypes.codelist, listItemName:="Classification0", changeable:=True)
         AddInterfaceTypeProperty(cBO, "IJEquipmentPart", "ProcessEqTypes1",
-                                 PropertyTypes.codelist, listItemName:="Classification1", changeable:=True)
+                                 PropertyTypes.codelist, listItemName:="Classification1", changeable:=True, parentCodeListPropName:="ProcessEqTypes0")
         AddInterfaceTypeProperty(cBO, "IJEquipmentPart", "ProcessEqTypes2",
-                                 PropertyTypes.codelist, listItemName:="Classification2", changeable:=True)
+                                 PropertyTypes.codelist, listItemName:="Classification2", changeable:=True, parentCodeListPropName:="ProcessEqTypes1")
+        AddInterfaceTypeProperty(cBO, "IJEquipmentPart", "ProcessEqTypes3",
+                                 PropertyTypes.codelist, listItemName:="Classification3", changeable:=True, parentCodeListPropName:="ProcessEqTypes2")
+        AddInterfaceTypeProperty(cBO, "IJEquipmentPart", "ProcessEqTypes4",
+                                 PropertyTypes.codelist, listItemName:="Classification4", changeable:=True, parentCodeListPropName:="ProcessEqTypes3")
+        AddInterfaceTypeProperty(cBO, "IJEquipmentPart", "ProcessEqTypes5",
+                                 PropertyTypes.codelist, listItemName:="Classification5", changeable:=True, parentCodeListPropName:="ProcessEqTypes4")
+        AddInterfaceTypeProperty(cBO, "IJEquipmentPart", "ProcessEqTypes6",
+                                 PropertyTypes.codelist, listItemName:="Classification6", changeable:=True, parentCodeListPropName:="ProcessEqTypes5")
+
 
 
     End Sub
@@ -782,6 +791,10 @@ eqp:
         Dim values As List(Of String) = Nothing
         If changeable.propertyType = PropertyTypes.codelist Or changeable.propertyType = PropertyTypes.insulationSpec Then
             values = GetPossiblePropertyValues(changeable)
+            If values.Count() = 0 Then
+                MsgBox("No possible values to change", vbCritical)
+                Exit Sub
+            End If
         End If
 
         Dim namingRule As String = Nothing
@@ -811,6 +824,7 @@ eqp:
                     Else
                         Dim oFeature As IPipePathFeature = changeable.item
                         oFeature.SetUserDefinedInsulation(oInsulated.InsulationPurpose, oInsulated.InsulationMaterial, oInsulated.InsulationThickness, 273)
+                        ProcessSelection(current_bo)
                     End If
                 End If
 
@@ -867,11 +881,13 @@ eqp:
 
                 Dim pv As PropertyValueCodelist = changeable.item.GetPropertyValue(changeable.interfaceName, changeable.parentCodeListPropName)
 
-                For Each cl As CodelistItem In changeable.codelistInfo.Parent.GetChildCodelistMembers(pv.PropValue).Values
-                    values.Add(cl.ShortDisplayName)
-                Next
+                If Not changeable.codelistInfo.Parent.GetChildCodelistMembers(pv.PropValue) Is Nothing Then
+                    For Each cl As CodelistItem In changeable.codelistInfo.Parent.GetChildCodelistMembers(pv.PropValue).Values
+                        values.Add(cl.ShortDisplayName)
+                    Next
+                End If
             Else
-                For Each cl As CodelistItem In changeable.codelistInfo.CodelistMembers
+                    For Each cl As CodelistItem In changeable.codelistInfo.CodelistMembers
                     values.Add(cl.ShortDisplayName)
                 Next
             End If

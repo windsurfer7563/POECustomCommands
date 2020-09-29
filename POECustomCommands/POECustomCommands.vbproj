@@ -63,6 +63,7 @@
     </Reference>
     <Reference Include="DrawingsMiddle">
       <HintPath>..\..\..\..\Program Files (x86)\Smart3D\Core\Container\Bin\Assemblies\Release\DrawingsMiddle.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="EquipmentMiddle">
       <HintPath>..\..\..\..\Program Files (x86)\Smart3D\Core\Container\Bin\Assemblies\Release\EquipmentMiddle.dll</HintPath>
@@ -74,9 +75,11 @@
     </Reference>
     <Reference Include="Intergraph.CommonToolkit.Middle">
       <HintPath>..\..\..\..\Program Files (x86)\Smart3D\Core\Container\Bin\SxS\Intergraph\Intergraph.CommonToolkit.Middle.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="NameRuleWrapperForNet">
       <HintPath>..\..\..\..\Program Files (x86)\Smart3D\Core\Container\Bin\Assemblies\Release\NameRuleWrapperForNet.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="ReferenceDataMiddle">
       <HintPath>..\..\..\..\Program Files (x86)\Smart3D\Core\Container\Bin\Assemblies\Release\ReferenceDataMiddle.dll</HintPath>
