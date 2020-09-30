@@ -56,7 +56,7 @@ Partial Class frmPropertyInspector
         Me.lvProperties.ReadOnly = True
         Me.lvProperties.RowHeadersVisible = False
         Me.lvProperties.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect
-        Me.lvProperties.Size = New System.Drawing.Size(321, 791)
+        Me.lvProperties.Size = New System.Drawing.Size(326, 791)
         Me.lvProperties.TabIndex = 2
         '
         'PropertyName
@@ -93,7 +93,7 @@ Partial Class frmPropertyInspector
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
-        Me.ClientSize = New System.Drawing.Size(321, 833)
+        Me.ClientSize = New System.Drawing.Size(326, 833)
         Me.Controls.Add(Me.lvProperties)
         Me.Controls.Add(Me.CheckBoxLongFormat)
         Me.Name = "frmPropertyInspector"

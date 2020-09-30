@@ -176,6 +176,7 @@
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
     <Compile Include="PropertyInspector.vb" />
+    <Compile Include="RemoveFrameConnections.vb" />
     <Compile Include="StrNameRuleAssignment.vb" />
   </ItemGroup>
   <ItemGroup>

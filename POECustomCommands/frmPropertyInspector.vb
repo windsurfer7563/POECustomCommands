@@ -60,10 +60,10 @@ Public Class frmPropertyInspector
         End If
     End Sub
     Private Sub Form1_Resize(sender As Object, e As EventArgs) Handles Me.Resize
-        'lvProperties.Width = Me.Width - 20
-        'lvProperties.Height = Me.Height - 50
+        lvProperties.Width = Me.Width - 16
+        lvProperties.Height = Me.Height - 81
         'lvProperties.Columns(0).MinimumWidth = (Me.Width - 20) * 0.3
-        'lvProperties.Columns(1).MinimumWidth = (Me.Width - 20) * 0.7
+        lvProperties.Columns(1).Width = (Me.Width - 194)
 
 
     End Sub
@@ -126,7 +126,7 @@ Public Class frmPropertyInspector
 
         End If
 
-        If CheckBoxLongFormat.Checked = True Then
+        If CheckBoxLongFormat.Checked = True And Not currentBOClass.Contains("Feature") Then
             Call GetNotes(current_bo)
         End If
 
@@ -173,7 +173,6 @@ Public Class frmPropertyInspector
 
     Private Sub GetEqpProperties(businessObject As BusinessObject)
         Dim pos As Position
-        Dim c1, c2, c3
 
         AddGroup("Equipment")
 
@@ -553,7 +552,6 @@ eqp:
     End Sub
 
     Private Sub GetNotes(oBO As BusinessObject)
-        Dim group As New ListViewGroup("Notes")
         AddGroup("Notes")
         Dim RC As RelationCollection
         RC = oBO.GetRelationship("ContainsNote", "GeneralNote")
