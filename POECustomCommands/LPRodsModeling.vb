@@ -13,9 +13,10 @@ Imports System.Globalization
 Imports Ingr.SP3D.Common.Client.Services.GraphicViewManager.GraphicViewEventArgs
 
 Public Class LPRodsModeling
-    'Inherits BaseGraphicCommand ' we need Graphic Events
+    'Inherits BaseGraphicCommand ' we need Graphic Events ok
     'Inherits BaseModalCommand
     Inherits BaseStepCommand
+
 
     Private WithEvents m_frmLPRodsModeling As frmLPRodsModeling ' our Form
     Private m_oEqp1 As Equipment
