@@ -43,7 +43,7 @@ Public Class RemoveFrameConnections
             oHiliter.HilitedObjects.Add(endC_2)
             endC_2.Delete()
 
-            ' MsgBox("C2 deleted")
+            ' MsgBox("C2 deleted") 
         End If
 
 

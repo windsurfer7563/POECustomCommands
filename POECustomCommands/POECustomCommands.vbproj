@@ -31,6 +31,7 @@
     <OutputPath>bin\Release\</OutputPath>
     <DocumentationFile>POECustomCommands.xml</DocumentationFile>
     <NoWarn>42016,41999,42017,42018,42019,42032,42036,42020,42021,42022</NoWarn>
+    <UseVSHostingProcess>false</UseVSHostingProcess>
   </PropertyGroup>
   <PropertyGroup>
     <OptionExplicit>On</OptionExplicit>
@@ -139,10 +140,10 @@
     <Compile Include="frmNameRuleAssignment.vb">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="frmPropertyInspectorChange.Designer.vb">
-      <DependentUpon>frmPropertyInspectorChange.vb</DependentUpon>
+    <Compile Include="frmPropertyInspectorChange_todel.Designer.vb">
+      <DependentUpon>frmPropertyInspectorChange_todel.vb</DependentUpon>
     </Compile>
-    <Compile Include="frmPropertyInspectorChange.vb">
+    <Compile Include="frmPropertyInspectorChange_todel.vb">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="GetObjectsOnDWG.vb" />
@@ -196,8 +197,8 @@
     <EmbeddedResource Include="frmPropertyInspector.resx">
       <DependentUpon>frmPropertyInspector.vb</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="frmPropertyInspectorChange.resx">
-      <DependentUpon>frmPropertyInspectorChange.vb</DependentUpon>
+    <EmbeddedResource Include="frmPropertyInspectorChange_todel.resx">
+      <DependentUpon>frmPropertyInspectorChange_todel.vb</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="My Project\Resources.resx">
       <Generator>VbMyResourcesResXFileCodeGenerator</Generator>

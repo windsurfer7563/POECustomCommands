@@ -139,7 +139,7 @@ Public Class frmPropertyInspector
 
         AddInterfaceTypeProperty(businessObject, "IJNamedItem", "Name", PropertyTypes.text, listItemName:="Name", changeable:=True)
 
-        AddInterfaceTypeProperty(businessObject, "IJDObject", "ApprovalStatus", PropertyTypes.codelist, changeable:=True)
+        AddInterfaceTypeProperty(businessObject, "IJDObject", "ApprovalReason", PropertyTypes.codelist, listItemName:="Status", changeable:=True)
 
         Call GetConstructionInfoData(businessObject)
 
@@ -534,6 +534,7 @@ eqp:
                     CreateNewLI("RoundedLength", oItem.GetPropertyValue("IJRteBolt", "RoundedLength").ToString())
                     CreateNewLI("Quantity", oItem.GetPropertyValue("IJRteBolt", "Quantity").ToString())
                     CreateNewLI("Diameter", oItem.GetPropertyValue("IJRteBolt", "Diameter").ToString())
+
                 End If
 
                 If oItem.SupportsInterface("IJRteGasket") Then
@@ -541,6 +542,10 @@ eqp:
                     oGasketPart = oImpliedMatingParts.TargetObjects(0)
                     CreateNewLI("Gasket CommodityCode", oGasketPart.GetPropertyValue("IJGasket", "IndustryCommodityCode").ToString())
                     CreateNewLI("Gasket Thikness", oGasketPart.GetPropertyValue("IJGasket", "ThicknessFor3DModel").ToString())
+                End If
+
+                If oItem.SupportsInterface("IJMtoInfo") = True Then
+                    AddInterfaceTypeProperty(oItem, "IJMTOInfo", "ReportingRequirements", PropertyTypes.codelist, changeable:=True)
                 End If
 
             Catch
@@ -955,9 +960,13 @@ Public Class ChangeableEntity
                         item.SetPropertyValue(pv.PropValue, interfaceName, propertyName)
                     Else
                         Dim oCL As CodelistItem
-                        oCL = codelistInfo.GetCodelistItem(newValue)
-                        item.SetPropertyValue(oCL, interfaceName, propertyName)
+                    oCL = codelistInfo.GetCodelistItem(newValue)
+                    If propertyName = "ApprovalReason" Then
+                        item.ApprovalReason = oCL.Value
+                    Else
+                        item.SetPropertyValue(oCL.Value, interfaceName, propertyName)
                     End If
+                End If
                 ElseIf propertyType = PropertyTypes.distance Then
                     Dim pv As PropertyValueDouble
                     pv = item.GetPropertyValue(interfaceName, propertyName)
