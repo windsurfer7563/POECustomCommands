@@ -514,11 +514,11 @@ eqp:
             i = i + 1
         Next
 
-        Call GetConnectionItems(oConn)
+        Call GetConnectionItems(oConn, connIndex)
 
     End Sub
 
-    Private Sub GetConnectionItems(oConn As Ingr.SP3D.Route.Middle.Connection)
+    Private Sub GetConnectionItems(oConn As Ingr.SP3D.Route.Middle.Connection, Optional connIndex As Integer = -1)
         Dim oImpliedMatingParts As RelationCollection
         Dim oBoltPart As BusinessObject
         Dim oGasketPart As BusinessObject
@@ -535,6 +535,17 @@ eqp:
                     CreateNewLI("Quantity", oItem.GetPropertyValue("IJRteBolt", "Quantity").ToString())
                     CreateNewLI("Diameter", oItem.GetPropertyValue("IJRteBolt", "Diameter").ToString())
 
+                    Dim itemName = Nothing
+                    If connIndex <> -1 Then
+                        itemName = "Blt. Rep. Requirem." + " " + connIndex.ToString()
+                    Else
+                        itemName = "Blt. Rep. Requirem."
+                    End If
+
+                    AddInterfaceTypeProperty(oItem, "IJRteBolt", "BoltReportingRequirements", PropertyTypes.codelist,
+                        listItemName:=itemName, changeable:=True)
+
+
                 End If
 
                 If oItem.SupportsInterface("IJRteGasket") Then
@@ -542,11 +553,21 @@ eqp:
                     oGasketPart = oImpliedMatingParts.TargetObjects(0)
                     CreateNewLI("Gasket CommodityCode", oGasketPart.GetPropertyValue("IJGasket", "IndustryCommodityCode").ToString())
                     CreateNewLI("Gasket Thikness", oGasketPart.GetPropertyValue("IJGasket", "ThicknessFor3DModel").ToString())
+
+                    Dim itemName = Nothing
+                    If connIndex <> -1 Then
+                        itemName = "Gsk.Rep.Requirem." + " " + connIndex.ToString()
+                    Else
+                        itemName = "Gsk.Rep.Requirem."
+                    End If
+
+
+                    AddInterfaceTypeProperty(oItem, "IJRteGasket", "GasketReportingRequirements", PropertyTypes.codelist,
+                          listItemName:=itemName, changeable:=True)
+
                 End If
 
-                If oItem.SupportsInterface("IJMtoInfo") = True Then
-                    AddInterfaceTypeProperty(oItem, "IJMTOInfo", "ReportingRequirements", PropertyTypes.codelist, changeable:=True)
-                End If
+
 
             Catch
 
